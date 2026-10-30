@@ -56,6 +56,10 @@ npm start -w app                      # Metro for the development build
 
 With `DEMO_LAT`/`DEMO_LON` set and no APNs config, the server runs a dry run at that spot and prints every card it would send.
 
+## Deployment
+
+The server runs on a Google Cloud e2-micro VM as a systemd service, behind Caddy for automatic HTTPS. `deploy/deploy.sh` ships the committed code, installs the server's dependencies and restarts the service; secrets live only on the VM. The app is built with EAS: `eas build --profile preview` produces an installable build that talks to the deployed server.
+
 ## Quality
 
 ```bash
