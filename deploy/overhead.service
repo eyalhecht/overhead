@@ -1,0 +1,19 @@
+[Unit]
+Description=Overhead API and watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=overhead
+WorkingDirectory=/opt/overhead/app/server
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/overhead
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
