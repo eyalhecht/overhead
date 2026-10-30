@@ -1,0 +1,28 @@
+import type { PropsWithChildren } from 'react';
+import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors } from '@/lib/theme';
+
+interface ScreenProps {
+  scrollable?: boolean;
+  style?: ViewStyle;
+}
+
+export function Screen({ children, scrollable = false, style }: PropsWithChildren<ScreenProps>) {
+  const insets = useSafeAreaInsets();
+  const inset = { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 };
+
+  if (scrollable) {
+    return (
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, inset, style]}>
+        {children}
+      </ScrollView>
+    );
+  }
+  return <View style={[styles.screen, styles.content, inset, style]}>{children}</View>;
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { flexGrow: 1, paddingHorizontal: 20, gap: 22 },
+});
