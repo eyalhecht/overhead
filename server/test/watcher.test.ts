@@ -66,6 +66,24 @@ describe('watcher', () => {
     expect(push.sent).toEqual([]);
   });
 
+  it('retries a start that failed to send instead of pausing new cards', async () => {
+    push.result = 'failed';
+    sky.planes = [nearbyPlane('ETD9702')];
+    await watcher.tick();
+    push.result = 'delivered';
+    await tickAfter(5000);
+    await watcher.reportActivityTokens(user, ['card-1']);
+    await tickAfter(ACTIVITY_RULES.tokenWaitMs + 5000);
+
+    expect(push.sent.map(({ event, token }) => `${event}:${token}`)).toEqual([
+      'start:start-token',
+      'start:start-token',
+      'update:card-1',
+    ]);
+    expect(user.activity.pausedUntil).toBeUndefined();
+    expect(user.activity.recentStarts).toHaveLength(1);
+  });
+
   it('forgets a start token that Apple reports as invalid', async () => {
     push.result = 'token-invalid';
     sky.planes = [nearbyPlane('BAW1')];

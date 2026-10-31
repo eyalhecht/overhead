@@ -44,14 +44,28 @@ export function createWatcher({
 
   async function watch(user: User): Promise<void> {
     const planes = isQuietTime(user, now()) ? [] : await routedPlanesAbove(demoLocation ?? user.location);
-    const { action, state } = nextStep(user.activity, {
+    const previous = user.activity;
+    const { action, state } = nextStep(previous, {
       planes,
       now: now(),
       canStart: user.startToken !== undefined,
       hasActivityToken: user.activityTokens.size > 0,
     });
     user.activity = state;
+    if (action.type === 'start') {
+      if (!(await startCard(user, action.props))) user.activity = previous;
+      return;
+    }
     await perform(user, action);
+  }
+
+  async function startCard(user: User, props: ActivityProps): Promise<boolean> {
+    if (!user.startToken) return false;
+    const result = await push.send(user.startToken, 'start', props);
+    if (result === 'token-invalid') user.startToken = undefined;
+    if (result === 'delivered')
+      console.log(`${label(user)} card started: ${props.flight} ${props.from} → ${props.to}`);
+    return result === 'delivered';
   }
 
   async function routedPlanesAbove(point: GeoPoint): Promise<RoutedPlane[]> {
@@ -59,16 +73,8 @@ export function createWatcher({
     return planes.filter((plane): plane is RoutedPlane => plane.route !== null);
   }
 
-  async function perform(user: User, action: Action): Promise<void> {
+  async function perform(user: User, action: Exclude<Action, { type: 'start' }>): Promise<void> {
     switch (action.type) {
-      case 'start':
-        if (
-          user.startToken &&
-          (await push.send(user.startToken, 'start', action.props)) === 'token-invalid'
-        ) {
-          user.startToken = undefined;
-        }
-        return;
       case 'update':
         return sendToActivities(user, 'update', action.props, [...user.activityTokens]);
       case 'end':

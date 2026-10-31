@@ -13,6 +13,7 @@ export interface PushClient {
 const ACTIVITY_NAME = 'Overhead';
 const STALE_SECONDS_AFTER_COUNTDOWN = 30;
 const AUTH_TOKEN_TTL_MS = 40 * 60_000;
+const IDLE_CONNECTION_MS = 5 * 60_000;
 const INVALID_TOKEN_REASONS = new Set([
   'BadDeviceToken',
   'Unregistered',
@@ -49,8 +50,10 @@ export function createApnsClient(config: ApnsConfig, now: () => number = Date.no
 
   function connection(): http2.ClientHttp2Session {
     if (!session || session.closed || session.destroyed) {
-      session = http2.connect(`https://${config.host}`);
-      session.on('error', () => session?.destroy());
+      const fresh = http2.connect(`https://${config.host}`);
+      fresh.on('error', () => fresh.destroy());
+      fresh.setTimeout(IDLE_CONNECTION_MS, () => fresh.close());
+      session = fresh;
     }
     return session;
   }
