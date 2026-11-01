@@ -7,20 +7,12 @@ import {
   nextStep,
   type ActivityState,
 } from '../src/activity/policy.js';
+import { routedPlane } from './fakes.js';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
-const plane = (flight: string, secondsLeft = 60): RoutedPlane => ({
-  id: flight.toLowerCase(),
-  flight,
-  altitudeFt: 3000,
-  trackDeg: 90,
-  distanceNm: 0.5,
-  bearingDeg: 0,
-  secondsLeft,
-  route: { from: 'LHR', fromCity: 'London', to: 'BER', toCity: 'Berlin' },
-});
+const plane = (flight: string, secondsLeft = 60) => routedPlane(flight, { secondsLeft });
 
 class Simulation {
   state: ActivityState = initialActivityState();

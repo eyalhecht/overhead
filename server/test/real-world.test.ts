@@ -233,4 +233,53 @@ describe('real-world situations', () => {
       });
     });
   });
+
+  describe('in a quiet suburb with one or two planes an hour, over five hours', () => {
+    const flights = ['ELY001', 'ETD9702', 'ETD594', 'WZZ63', 'UAL90', 'AEE926', 'DLH686'];
+    const quietSuburb = together(
+      passing('ELY001', 9 * MINUTE_MS, 70),
+      passing('ETD9702', 41 * MINUTE_MS, 90),
+      passing('ETD594', 43 * MINUTE_MS, 80),
+      passing('WZZ63', 96 * MINUTE_MS, 60),
+      passing('UAL90', 150 * MINUTE_MS, 110),
+      passing('AEE926', 205 * MINUTE_MS, 75),
+      passing('DLH686', 262 * MINUTE_MS, 95),
+    );
+    const shownFlights = () =>
+      new Set(
+        world
+          .pushes()
+          .filter(({ event }) => event !== 'end')
+          .flatMap(({ props }) => [props.flight, props.second?.flight]),
+      );
+
+    it('shows every plane, never pauses and closes every card afterwards', async () => {
+      const user = world.join();
+      await world.run(5 * 60 * MINUTE_MS, quietSuburb);
+
+      expect(flights.every((flight) => shownFlights().has(flight))).toBe(true);
+      expect(world.pushes('start').length).toBeLessThanOrEqual(flights.length);
+      expect(world.pushes('end')).toHaveLength(world.pushes('start').length);
+      expect(user.activity.pausedUntil).toBeUndefined();
+      expect(user.activityTokens.size).toBe(0);
+    });
+
+    it('still shows the first plane when its push hits a dropped connection', async () => {
+      const user = world.join();
+      const send = world.push.send.bind(world.push);
+      let failuresLeft = 1;
+      world.push.send = async (token, event, props) => {
+        if (event === 'start' && failuresLeft > 0) {
+          failuresLeft -= 1;
+          return 'failed';
+        }
+        return send(token, event, props);
+      };
+
+      await world.run(15 * MINUTE_MS, quietSuburb);
+
+      expect(shownFlights()).toContain('ELY001');
+      expect(user.activity.pausedUntil).toBeUndefined();
+    });
+  });
 });
