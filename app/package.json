@@ -26,12 +26,14 @@
   "devDependencies": {
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
-    "eslint-config-expo": "~58.0.4"
+    "eslint-config-expo": "~58.0.4",
+    "vitest": "^3.2.7"
   },
   "scripts": {
     "start": "expo start --dev-client",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "private": true
 }
