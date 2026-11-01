@@ -1,9 +1,14 @@
-import type { ActivityProps, NearbyPlane } from '@overhead/shared';
+import {
+  hasRoute,
+  type ActivityProps,
+  type GeoPoint,
+  type NearbyPlane,
+  type RoutedPlane,
+} from '@overhead/shared';
 import type { Sky } from '../flights/sky.js';
-import type { GeoPoint } from '../flights/positions.js';
 import type { LiveActivityEvent, PushClient } from '../push/apns.js';
 import { isQuietTime, type User, type UserStore } from '../users.js';
-import { acknowledgeActivityToken, nextStep, type Action, type RoutedPlane } from './policy.js';
+import { acknowledgeActivityToken, nextStep, type Action } from './policy.js';
 
 const TICK_INTERVAL_MS = 5000;
 
@@ -75,7 +80,7 @@ export function createWatcher({
       console.warn(`${label(user)} cannot see the sky: ${error.message}`);
       return [];
     });
-    return planes.filter((plane): plane is RoutedPlane => plane.route !== null);
+    return planes.filter(hasRoute);
   }
 
   async function perform(user: User, action: Exclude<Action, { type: 'start' }>): Promise<void> {

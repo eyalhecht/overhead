@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+}
+
 export interface Route {
   from: string;
   fromCity: string;
@@ -32,6 +37,10 @@ export interface NearbyPlane {
   secondsLeft: number;
   route: Route | null;
 }
+
+export type RoutedPlane = NearbyPlane & { route: Route };
+
+export const hasRoute = (plane: NearbyPlane): plane is RoutedPlane => plane.route !== null;
 
 const latitude = z.number().min(-90).max(90);
 const longitude = z.number().min(-180).max(180);

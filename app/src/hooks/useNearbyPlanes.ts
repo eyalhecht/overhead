@@ -1,10 +1,10 @@
-import type { NearbyPlane } from '@overhead/shared';
+import type { GeoPoint, NearbyPlane } from '@overhead/shared';
 import { useEffect, useState } from 'react';
-import { fetchPlanesAbove, type Coordinates } from '@/services/api';
+import { fetchPlanesAbove } from '@/services/api';
 
 const REFRESH_INTERVAL_MS = 5000;
 
-export function useNearbyPlanes(location: Coordinates | undefined): NearbyPlane[] {
+export function useNearbyPlanes(location: GeoPoint | undefined): NearbyPlane[] {
   const [planes, setPlanes] = useState<NearbyPlane[]>([]);
 
   useEffect(() => {

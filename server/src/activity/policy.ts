@@ -1,4 +1,4 @@
-import type { ActivityProps, NearbyPlane, Route } from '@overhead/shared';
+import type { ActivityProps, RoutedPlane } from '@overhead/shared';
 
 export const ACTIVITY_RULES = {
   refreshIntervalMs: 15_000,
@@ -11,8 +11,6 @@ export const ACTIVITY_RULES = {
 } as const;
 
 const HOUR_MS = 60 * 60_000;
-
-export type RoutedPlane = NearbyPlane & { route: Route };
 
 export interface ShowingCard {
   key: string;
@@ -68,24 +66,19 @@ export function nextStep(
   const overheadSince = trackOverhead(state.overheadSince, planes, now);
   const passing = planes.filter((plane) => !isHovering(overheadSince, plane, now));
   const [main, second] = passing;
-  const key = main ? cardKey(main, second) : undefined;
-  const next: ActivityState = { ...state, overheadSince };
+  const next: ActivityState = { ...state, overheadSince, emptySince: undefined };
 
-  const hovering = !!showing && planes.length > 0 && passing.length === 0;
+  const onlyHovering = !!showing && planes.length > 0 && passing.length === 0;
   const tooOld = !!showing && now - showing.startedAt > ACTIVITY_RULES.renewAfterMs;
-  const visibleKey = tooOld ? undefined : key;
+  const key = main && !tooOld ? cardKey(main, second) : undefined;
 
-  if (!visibleKey) {
+  if (!key) {
     if (!showing) return none(next);
-    const emptySince = hovering || tooOld ? now - ACTIVITY_RULES.gracePeriodMs : (state.emptySince ?? now);
-    if (now - emptySince < ACTIVITY_RULES.gracePeriodMs) return none({ ...next, emptySince });
-    return {
-      action: { type: 'end', props: showing.props },
-      state: { ...next, showing: undefined, emptySince: undefined },
-    };
+    const emptySince = state.emptySince ?? now;
+    const graceOver = now - emptySince >= ACTIVITY_RULES.gracePeriodMs;
+    if (!onlyHovering && !tooOld && !graceOver) return none({ ...next, emptySince });
+    return { action: { type: 'end', props: showing.props }, state: { ...next, showing: undefined } };
   }
-
-  next.emptySince = undefined;
 
   if (!showing) {
     if (!canStart || !mayStart(state, now)) return none(next);
@@ -94,20 +87,20 @@ export function nextStep(
       action: { type: 'start', props },
       state: {
         ...next,
-        showing: { key: visibleKey, props, startedAt: now, sentAt: now, awaitingTokenSince: now },
+        showing: { key, props, startedAt: now, sentAt: now, awaitingTokenSince: now },
         lastProps: props,
         recentStarts: [...startsWithinHour(state.recentStarts, now), now],
       },
     };
   }
 
-  const unchanged = visibleKey === showing.key;
+  const unchanged = key === showing.key;
   if (unchanged && now - showing.sentAt < ACTIVITY_RULES.refreshIntervalMs) return none(next);
 
   const props = cardProps(passing, now);
   return {
     action: { type: 'update', props },
-    state: { ...next, showing: { ...showing, key: visibleKey, props, sentAt: now }, lastProps: props },
+    state: { ...next, showing: { ...showing, key, props, sentAt: now }, lastProps: props },
   };
 }
 

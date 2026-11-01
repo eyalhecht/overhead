@@ -1,9 +1,4 @@
-import type { NearbyPlane, RegisterRequest } from '@overhead/shared';
-
-export interface Coordinates {
-  lat: number;
-  lon: number;
-}
+import type { GeoPoint, NearbyPlane, RegisterRequest } from '@overhead/shared';
 
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL ?? 'http://localhost:8080';
 const APP_KEY = process.env.EXPO_PUBLIC_APP_KEY ?? '';
@@ -21,7 +16,7 @@ export async function register(body: RegisterRequest): Promise<void> {
   await request('/register', { method: 'POST', body: JSON.stringify(body) });
 }
 
-export async function fetchPlanesAbove({ lat, lon }: Coordinates): Promise<NearbyPlane[]> {
+export async function fetchPlanesAbove({ lat, lon }: GeoPoint): Promise<NearbyPlane[]> {
   const response = await request(`/planes?lat=${lat}&lon=${lon}`);
   return (await response.json()) as NearbyPlane[];
 }

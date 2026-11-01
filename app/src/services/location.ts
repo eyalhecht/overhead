@@ -1,6 +1,6 @@
+import type { GeoPoint } from '@overhead/shared';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import type { Coordinates } from './api';
 import { checkIn } from './checkIn';
 
 const BACKGROUND_TASK = 'overhead-background-location';
@@ -16,7 +16,7 @@ TaskManager.defineTask<BackgroundLocationData>(BACKGROUND_TASK, async ({ data, e
   await checkIn(toCoordinates(latest)).catch(() => undefined);
 });
 
-export function toCoordinates(location: Location.LocationObject): Coordinates {
+export function toCoordinates(location: Location.LocationObject): GeoPoint {
   return { lat: location.coords.latitude, lon: location.coords.longitude };
 }
 

@@ -1,6 +1,6 @@
+import type { GeoPoint } from '@overhead/shared';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
-import type { Coordinates } from '@/services/api';
 import { checkIn } from '@/services/checkIn';
 import { requestLocationAccess, toCoordinates } from '@/services/location';
 
@@ -10,7 +10,7 @@ const FOREGROUND_DISTANCE_M = 50;
 
 export function useLocation() {
   const [permission, setPermission] = useState<LocationPermission>('unknown');
-  const [location, setLocation] = useState<Coordinates>();
+  const [location, setLocation] = useState<GeoPoint>();
 
   useEffect(() => {
     void Location.getForegroundPermissionsAsync().then(({ granted, canAskAgain }) =>

@@ -1,8 +1,9 @@
+import type { GeoPoint } from '@overhead/shared';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getIosIdForVendorAsync } from 'expo-application';
 import { addPushToStartTokenListener } from 'expo-widgets';
 import OverheadActivity from '@/live-activity/OverheadActivity';
-import { register, type Coordinates } from './api';
+import { register } from './api';
 import { loadSettings, onSettingsChange, QUIET_HOURS } from './settings';
 
 const LOCATION_STORAGE_KEY = 'lastLocation';
@@ -12,11 +13,11 @@ const MAX_CARD_AGE_MS = 30 * 60_000;
 const COORDINATE_DECIMALS = 3;
 
 let startToken: string | undefined;
-let lastLocation: Coordinates | undefined;
+let lastLocation: GeoPoint | undefined;
 let lastReport = { activityTokens: '', at: 0 };
 const cardFirstSeen = new Map<string, number>();
 
-export async function checkIn(location?: Coordinates): Promise<void> {
+export async function checkIn(location?: GeoPoint): Promise<void> {
   if (location) await rememberLocation(location);
   const target = lastLocation ?? (await storedLocation());
   if (!target) return;
@@ -79,14 +80,14 @@ function closeOldCards(): void {
   }
 }
 
-async function rememberLocation(location: Coordinates): Promise<void> {
+async function rememberLocation(location: GeoPoint): Promise<void> {
   lastLocation = location;
   await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(location));
 }
 
-async function storedLocation(): Promise<Coordinates | undefined> {
+async function storedLocation(): Promise<GeoPoint | undefined> {
   const stored = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
-  lastLocation = stored ? (JSON.parse(stored) as Coordinates) : undefined;
+  lastLocation = stored ? (JSON.parse(stored) as GeoPoint) : undefined;
   return lastLocation;
 }
 

@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { RoutedPlane } from '@/hooks/useSky';
+import type { RoutedPlane } from '@overhead/shared';
 import { compassDirection, formatAltitude, formatCountdown, formatDistance } from '@/lib/format';
 import { colors, radius } from '@/lib/theme';
 

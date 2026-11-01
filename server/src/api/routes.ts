@@ -1,7 +1,6 @@
-import { PlanesQuerySchema, RegisterRequestSchema } from '@overhead/shared';
+import { PlanesQuerySchema, RegisterRequestSchema, type GeoPoint } from '@overhead/shared';
 import { Router } from 'express';
 import type { Watcher } from '../activity/watcher.js';
-import type { GeoPoint } from '../flights/positions.js';
 import type { Sky } from '../flights/sky.js';
 import type { UserStore } from '../users.js';
 

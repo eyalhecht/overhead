@@ -1,7 +1,7 @@
-import type { NearbyPlane } from '@overhead/shared';
+import type { GeoPoint, NearbyPlane } from '@overhead/shared';
 import { aircraftName, rareAircraftName } from './aircraft.js';
 import { isOverhead, secondsUntilExit } from './geometry.js';
-import type { GeoPoint, PositionSource } from './positions.js';
+import type { PositionSource } from './positions.js';
 import type { RouteSource } from './routes.js';
 
 const SEARCH_RADIUS_NM = 3;

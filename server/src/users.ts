@@ -1,6 +1,5 @@
-import type { RegisterRequest } from '@overhead/shared';
+import type { GeoPoint, RegisterRequest } from '@overhead/shared';
 import { initialActivityState, type ActivityState } from './activity/policy.js';
-import type { GeoPoint } from './flights/positions.js';
 
 const MINUTES_PER_DAY = 24 * 60;
 
@@ -34,20 +33,21 @@ export function createUserStore(maxUsers = 100): UserStore {
       const existing = users.get(request.deviceId);
       if (!existing && users.size >= maxUsers) throw new UserLimitError(maxUsers);
 
-      const user: User = existing ?? {
-        deviceId: request.deviceId,
+      const profile = {
         location: { lat: request.lat, lon: request.lon },
-        activityTokens: new Set(),
-        endedTokens: new Set(),
-        quietHours: null,
-        utcOffsetMinutes: 0,
-        activity: initialActivityState(),
+        startToken: request.startToken,
+        quietHours: request.quietHours,
+        utcOffsetMinutes: request.utcOffsetMinutes,
       };
-      user.location = { lat: request.lat, lon: request.lon };
-      user.startToken = request.startToken;
-      user.quietHours = request.quietHours;
-      user.utcOffsetMinutes = request.utcOffsetMinutes;
-
+      const user: User = existing
+        ? Object.assign(existing, profile)
+        : {
+            deviceId: request.deviceId,
+            activityTokens: new Set(),
+            endedTokens: new Set(),
+            activity: initialActivityState(),
+            ...profile,
+          };
       users.set(user.deviceId, user);
       return user;
     },

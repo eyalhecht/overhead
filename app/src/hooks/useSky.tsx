@@ -1,14 +1,11 @@
-import type { NearbyPlane, Route } from '@overhead/shared';
+import { hasRoute, type GeoPoint, type NearbyPlane, type RoutedPlane } from '@overhead/shared';
 import { createContext, useContext, useMemo, type PropsWithChildren } from 'react';
-import type { Coordinates } from '@/services/api';
 import { useHeading } from './useHeading';
 import { useLocation, type LocationPermission } from './useLocation';
 import { useNearbyPlanes } from './useNearbyPlanes';
 
-export type RoutedPlane = NearbyPlane & { route: Route };
-
 interface Sky {
-  location?: Coordinates;
+  location?: GeoPoint;
   permission: LocationPermission;
   requestAccess: () => Promise<boolean>;
   heading: number;
@@ -30,7 +27,7 @@ export function SkyProvider({ children }: PropsWithChildren) {
       requestAccess,
       heading,
       planes,
-      routedPlanes: planes.filter((plane): plane is RoutedPlane => plane.route !== null),
+      routedPlanes: planes.filter(hasRoute),
     }),
     [location, permission, requestAccess, heading, planes],
   );

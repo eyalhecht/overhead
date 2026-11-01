@@ -1,3 +1,4 @@
+import type { RoutedPlane } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_RULES,
@@ -5,7 +6,6 @@ import {
   initialActivityState,
   nextStep,
   type ActivityState,
-  type RoutedPlane,
 } from '../src/activity/policy.js';
 
 const SECOND = 1000;

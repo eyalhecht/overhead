@@ -1,10 +1,6 @@
+import type { GeoPoint } from '@overhead/shared';
 import { z } from 'zod';
 import type { Aircraft } from './geometry.js';
-
-export interface GeoPoint {
-  lat: number;
-  lon: number;
-}
 
 export interface PositionSource {
   aircraftNear(point: GeoPoint, radiusNm: number): Promise<Aircraft[]>;
