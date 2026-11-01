@@ -52,4 +52,72 @@ describe('API', () => {
   it('rejects impossible coordinates', async () => {
     await authorized(request(app).get('/planes?lat=999&lon=13.4')).expect(400);
   });
+
+  it('accepts a check-in with real-length iOS push tokens', async () => {
+    const pushToStart = 'a1'.repeat(80);
+    const cardToken = 'f0'.repeat(80);
+    await authorized(request(app).post('/register'))
+      .send(registerRequest({ startToken: pushToStart, activityTokens: [cardToken] }))
+      .expect(204);
+    expect(users.all()[0]?.startToken).toBe(pushToStart);
+  });
+
+  it('still accepts check-ins from a newer app that sends extra fields', async () => {
+    await authorized(request(app).post('/register'))
+      .send({ ...registerRequest(), appVersion: '1.4.0', units: 'imperial' })
+      .expect(204);
+  });
+
+  it('accepts time zones that are not whole hours, like India and Nepal', async () => {
+    for (const utcOffsetMinutes of [330, 345, -210]) {
+      await authorized(request(app).post('/register'))
+        .send(registerRequest({ utcOffsetMinutes }))
+        .expect(204);
+    }
+  });
+
+  it('stops new cards when the user turns Live Activities off in the app', async () => {
+    await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
+
+    await authorized(request(app).post('/register'))
+      .send(registerRequest({ startToken: undefined }))
+      .expect(204);
+
+    expect(users.all()[0]?.startToken).toBeUndefined();
+  });
+
+  it('asks a phone to try again later when the server is full', async () => {
+    const full = createUserStore(1);
+    const fullApp = createApp({
+      appKey: APP_KEY,
+      users: full,
+      sky,
+      watcher: createWatcher({ users: full, sky, push: new FakePush() }),
+    });
+    await authorized(request(fullApp).post('/register'))
+      .send(registerRequest({ deviceId: 'first' }))
+      .expect(204);
+
+    await authorized(request(fullApp).post('/register'))
+      .send(registerRequest({ deviceId: 'second' }))
+      .expect(503);
+  });
+
+  it('answers broken JSON with 400 instead of crashing', async () => {
+    await authorized(request(app).post('/register'))
+      .set('content-type', 'application/json')
+      .send('{"deviceId": "phone-1",')
+      .expect(400);
+  });
+
+  it('rejects an app key that is only partly right', async () => {
+    await request(app).get('/planes?lat=52.5&lon=13.4').set('x-app-key', 'test-ke').expect(401);
+    await request(app).get('/planes?lat=52.5&lon=13.4').set('x-app-key', 'test-kez').expect(401);
+  });
+
+  it('rejects a token that could smuggle a path into the request to Apple', async () => {
+    await authorized(request(app).post('/register'))
+      .send(registerRequest({ startToken: '../../3/device/other' }))
+      .expect(400);
+  });
 });

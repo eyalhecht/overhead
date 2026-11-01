@@ -48,4 +48,74 @@ describe('route source', () => {
 
     expect(route).toMatchObject({ from: 'AUH', to: 'TLV' });
   });
+
+  it('asks Flightradar24 for this callsign over the last 20 hours', async () => {
+    fetchFn.mockResolvedValue(fr24Response({ data: [] }));
+    await source().routeFor('ETD75C');
+
+    const url = new URL(String(fetchFn.mock.calls[0]?.[0]));
+    expect(url.searchParams.get('callsigns')).toBe('ETD75C');
+    expect(url.searchParams.get('flight_datetime_from')).toBe('2026-10-31 16:00:00');
+    expect(url.searchParams.get('flight_datetime_to')).toBe('2026-11-01 12:00:00');
+  });
+
+  it('picks the leg flying now when a callsign flew there and back', async () => {
+    fetchFn.mockResolvedValue(
+      fr24Response({
+        data: [
+          { orig_iata: 'AUH', dest_iata: 'TLV', datetime_takeoff: '2026-10-31T19:40:00Z' },
+          { orig_iata: 'TLV', dest_iata: 'AUH', datetime_takeoff: '2026-11-01T11:55:00Z' },
+        ],
+      }),
+    );
+
+    expect(await source().routeFor('ETD75C')).toMatchObject({ from: 'TLV', to: 'AUH' });
+  });
+
+  it('uses when the plane was first seen for a flight that has not logged its takeoff', async () => {
+    fetchFn.mockResolvedValue(
+      fr24Response({
+        data: [
+          { orig_iata: 'LTN', dest_iata: 'TLV', datetime_takeoff: '2026-10-31T17:00:00Z' },
+          { orig_iata: 'TLV', dest_iata: 'LTN', datetime_takeoff: null, first_seen: '2026-11-01T11:50:00Z' },
+        ],
+      }),
+    );
+
+    expect(await source().routeFor('WUK619')).toMatchObject({ from: 'TLV', to: 'LTN' });
+  });
+
+  it('ignores legs without both airports and gives up when none are left', async () => {
+    fetchFn.mockResolvedValue(fr24Response({ data: [{ orig_iata: 'TLV', dest_iata: null }] }));
+    expect(await source().routeFor('4XHSC')).toBeNull();
+  });
+
+  it('remembers a flight without a route so it does not spend credits on it again', async () => {
+    fetchFn.mockResolvedValue(fr24Response({ data: [] }));
+    const routes = source();
+
+    await routes.routeFor('4XHSC');
+    now += 30 * 60_000;
+    await routes.routeFor('4XHSC');
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the airport code when it does not know the city', async () => {
+    fetchFn.mockResolvedValue(fr24Response({ data: [{ orig_iata: 'TLV', dest_iata: 'XQZ' }] }));
+    expect(await source().routeFor('ELY999')).toMatchObject({ toCity: 'XQZ', fromCity: 'Tel Aviv' });
+  });
+
+  it('looks flights up again on a new day, when the same callsign can fly elsewhere', async () => {
+    fetchFn
+      .mockResolvedValueOnce(fr24Response({ data: [{ orig_iata: 'TLV', dest_iata: 'ATH' }] }))
+      .mockResolvedValueOnce(fr24Response({ data: [{ orig_iata: 'TLV', dest_iata: 'LCA' }] }));
+    const routes = source();
+
+    await routes.routeFor('ISR701');
+    now = Date.UTC(2026, 10, 2, 0, 5);
+    const nextDay = await routes.routeFor('ISR701');
+
+    expect(nextDay).toMatchObject({ to: 'LCA' });
+  });
 });
