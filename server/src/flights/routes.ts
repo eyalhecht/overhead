@@ -15,6 +15,7 @@ interface RouteSourceOptions {
 }
 
 const REQUEST_TIMEOUT_MS = 6000;
+const FAILED_LOOKUP_RETRY_MS = 5 * 60_000;
 const FR24_LOOKBACK_MS = 20 * 60 * 60 * 1000;
 const FR24_SUMMARY_URL = 'https://fr24api.flightradar24.com/api/flight-summary/full';
 const ADSBDB_CALLSIGN_URL = 'https://api.adsbdb.com/v0/callsign';
@@ -28,6 +29,7 @@ export function createRouteSource({
 }: RouteSourceOptions): RouteSource {
   const provider = fr24Token ? flightradar24(fr24Token, fetchFn, now) : adsbdb(fetchFn);
   const cache = new Map<string, Route | null>();
+  const failedAt = new Map<string, number>();
   let cacheDay = '';
 
   return {
@@ -38,12 +40,15 @@ export function createRouteSource({
         cacheDay = today;
       }
       if (cache.has(flight)) return cache.get(flight) ?? null;
+      if (now() - (failedAt.get(flight) ?? -Infinity) < FAILED_LOOKUP_RETRY_MS) return null;
 
       try {
         const route = await provider(flight);
         cache.set(flight, route);
+        failedAt.delete(flight);
         return route;
       } catch (error) {
+        failedAt.set(flight, now());
         console.warn(`Route lookup failed for ${flight}: ${(error as Error).message}`);
         return null;
       }
