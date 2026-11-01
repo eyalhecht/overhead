@@ -1,4 +1,4 @@
-import type { ActivityProps } from '@overhead/shared';
+import type { ActivityProps, NearbyPlane } from '@overhead/shared';
 import type { Sky } from '../flights/sky.js';
 import type { GeoPoint } from '../flights/positions.js';
 import type { LiveActivityEvent, PushClient } from '../push/apns.js';
@@ -43,7 +43,9 @@ export function createWatcher({
   }
 
   async function watch(user: User): Promise<void> {
-    const planes = isQuietTime(user, now()) ? [] : await routedPlanesAbove(demoLocation ?? user.location);
+    const planes = isQuietTime(user, now())
+      ? []
+      : await routedPlanesAbove(user, demoLocation ?? user.location);
     const previous = user.activity;
     const { action, state } = nextStep(previous, {
       planes,
@@ -68,8 +70,11 @@ export function createWatcher({
     return result === 'delivered';
   }
 
-  async function routedPlanesAbove(point: GeoPoint): Promise<RoutedPlane[]> {
-    const planes = await sky.planesAbove(point);
+  async function routedPlanesAbove(user: User, point: GeoPoint): Promise<RoutedPlane[]> {
+    const planes = await sky.planesAbove(point).catch((error: Error): NearbyPlane[] => {
+      console.warn(`${label(user)} cannot see the sky: ${error.message}`);
+      return [];
+    });
     return planes.filter((plane): plane is RoutedPlane => plane.route !== null);
   }
 

@@ -105,7 +105,7 @@ describe('nextStep', () => {
     expect(sim.step([plane('BAW1')])).toBe('start');
     expect(sim.step([plane('BAW1')], ACTIVITY_RULES.tokenWaitMs + SECOND)).toBe('back-off');
     expect(sim.step([plane('BAW1')], MINUTE)).toBe('none');
-    expect(sim.step([plane('BAW1')], ACTIVITY_RULES.backoffMs)).toBe('start');
+    expect(sim.step([plane('BAW2')], ACTIVITY_RULES.backoffMs)).toBe('start');
   });
 
   it('never starts a card when Live Activities are switched off', () => {

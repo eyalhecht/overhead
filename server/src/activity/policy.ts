@@ -25,9 +25,8 @@ export interface ShowingCard {
 export interface ActivityState {
   showing?: ShowingCard;
   lastProps?: ActivityProps;
-  main?: { flight: string; since: number };
+  overheadSince: Record<string, number>;
   emptySince?: number;
-  blockedKey?: string;
   recentStarts: number[];
   pausedUntil?: number;
 }
@@ -51,7 +50,7 @@ export interface StepResult {
   state: ActivityState;
 }
 
-export const initialActivityState = (): ActivityState => ({ recentStarts: [] });
+export const initialActivityState = (): ActivityState => ({ recentStarts: [], overheadSince: {} });
 
 export function nextStep(
   state: ActivityState,
@@ -62,23 +61,19 @@ export function nextStep(
   if (isStartDropped(showing, hasActivityToken, now)) {
     return {
       action: { type: 'back-off' },
-      state: { ...state, showing: undefined, main: undefined, pausedUntil: now + ACTIVITY_RULES.backoffMs },
+      state: { ...state, showing: undefined, pausedUntil: now + ACTIVITY_RULES.backoffMs },
     };
   }
 
-  const [main, second] = planes;
+  const overheadSince = trackOverhead(state.overheadSince, planes, now);
+  const passing = planes.filter((plane) => !isHovering(overheadSince, plane, now));
+  const [main, second] = passing;
   const key = main ? cardKey(main, second) : undefined;
-  const next: ActivityState = {
-    ...state,
-    main: main ? trackMain(state.main, main.flight, now) : undefined,
-    blockedKey: key === state.blockedKey ? state.blockedKey : undefined,
-  };
+  const next: ActivityState = { ...state, overheadSince };
 
-  const hovering = !!showing && !!next.main && now - next.main.since > ACTIVITY_RULES.hoverLimitMs;
+  const hovering = !!showing && planes.length > 0 && passing.length === 0;
   const tooOld = !!showing && now - showing.startedAt > ACTIVITY_RULES.renewAfterMs;
-  if (hovering) next.blockedKey = key;
-
-  const visibleKey = hovering || tooOld || key === next.blockedKey ? undefined : key;
+  const visibleKey = tooOld ? undefined : key;
 
   if (!visibleKey) {
     if (!showing) return none(next);
@@ -94,12 +89,11 @@ export function nextStep(
 
   if (!showing) {
     if (!canStart || !mayStart(state, now)) return none(next);
-    const props = cardProps(planes, now);
+    const props = cardProps(passing, now);
     return {
       action: { type: 'start', props },
       state: {
         ...next,
-        main: { flight: props.flight, since: now },
         showing: { key: visibleKey, props, startedAt: now, sentAt: now, awaitingTokenSince: now },
         lastProps: props,
         recentStarts: [...startsWithinHour(state.recentStarts, now), now],
@@ -110,7 +104,7 @@ export function nextStep(
   const unchanged = visibleKey === showing.key;
   if (unchanged && now - showing.sentAt < ACTIVITY_RULES.refreshIntervalMs) return none(next);
 
-  const props = cardProps(planes, now);
+  const props = cardProps(passing, now);
   return {
     action: { type: 'update', props },
     state: { ...next, showing: { ...showing, key: visibleKey, props, sentAt: now }, lastProps: props },
@@ -139,12 +133,16 @@ function startsWithinHour(starts: number[], now: number): number[] {
   return starts.filter((startedAt) => now - startedAt < HOUR_MS);
 }
 
-function trackMain(
-  current: ActivityState['main'],
-  flight: string,
+function trackOverhead(
+  previous: Record<string, number>,
+  planes: RoutedPlane[],
   now: number,
-): NonNullable<ActivityState['main']> {
-  return current?.flight === flight ? current : { flight, since: now };
+): Record<string, number> {
+  return Object.fromEntries(planes.map(({ flight }) => [flight, previous[flight] ?? now]));
+}
+
+function isHovering(overheadSince: Record<string, number>, plane: RoutedPlane, now: number): boolean {
+  return now - (overheadSince[plane.flight] ?? now) > ACTIVITY_RULES.hoverLimitMs;
 }
 
 function cardKey(main: RoutedPlane, second: RoutedPlane | undefined): string {

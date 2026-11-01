@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACTIVITY_RULES } from '../src/activity/policy.js';
 import { createWatcher, type Watcher } from '../src/activity/watcher.js';
 import { createUserStore, type User, type UserStore } from '../src/users.js';
@@ -13,6 +13,7 @@ describe('watcher', () => {
   let now: number;
 
   beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
     sky = new FakeSky();
     push = new FakePush();
     users = createUserStore();

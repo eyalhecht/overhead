@@ -1,4 +1,5 @@
 import type { ActivityProps, NearbyPlane, RegisterRequest } from '@overhead/shared';
+import type { GeoPoint } from '../src/flights/positions.js';
 import type { Sky } from '../src/flights/sky.js';
 import type { LiveActivityEvent, PushClient, PushResult } from '../src/push/apns.js';
 
@@ -17,9 +18,12 @@ export const nearbyPlane = (flight: string, overrides: Partial<NearbyPlane> = {}
 
 export class FakeSky implements Sky {
   planes: NearbyPlane[] = [];
+  feedDown = false;
+  planesAt?: (point: GeoPoint) => NearbyPlane[];
 
-  async planesAbove(): Promise<NearbyPlane[]> {
-    return this.planes;
+  async planesAbove(point: GeoPoint): Promise<NearbyPlane[]> {
+    if (this.feedDown) throw new Error('All position feeds failed');
+    return this.planesAt?.(point) ?? this.planes;
   }
 }
 
