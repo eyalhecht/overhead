@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
 import { checkIn } from '@/services/checkIn';
 import { requestLocationAccess, toCoordinates } from '@/services/location';
+import { useSubscription } from './useSubscription';
 
 export type LocationPermission = 'unknown' | 'granted' | 'denied';
 
@@ -18,28 +19,19 @@ export function useLocation() {
     );
   }, []);
 
-  useEffect(() => {
-    if (permission !== 'granted') return;
-    let subscription: Location.LocationSubscription | undefined;
-    let cancelled = false;
-
-    void Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.Balanced, distanceInterval: FOREGROUND_DISTANCE_M },
-      (update) => {
-        const coordinates = toCoordinates(update);
-        setLocation(coordinates);
-        void checkIn(coordinates).catch(() => undefined);
-      },
-    ).then((created) => {
-      if (cancelled) created.remove();
-      else subscription = created;
-    });
-
-    return () => {
-      cancelled = true;
-      subscription?.remove();
-    };
-  }, [permission]);
+  const watchPosition = useCallback(
+    () =>
+      Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, distanceInterval: FOREGROUND_DISTANCE_M },
+        (update) => {
+          const coordinates = toCoordinates(update);
+          setLocation(coordinates);
+          void checkIn(coordinates).catch(() => undefined);
+        },
+      ),
+    [],
+  );
+  useSubscription(permission === 'granted' ? watchPosition : undefined);
 
   const requestAccess = useCallback(async () => {
     const granted = await requestLocationAccess();

@@ -1,15 +1,15 @@
 import type { NearbyPlane } from '@overhead/shared';
 import { StyleSheet } from 'react-native';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
-import { compassDirection, formatDistance } from '@/lib/format';
+import { compassDirection, formatDistance, KM_PER_NM } from '@/lib/format';
 import { colors } from '@/lib/theme';
 
 const WIDTH = 300;
 const HEIGHT = 200;
 const CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
 const PX_PER_KM = 32;
-const KM_PER_NM = 1.852;
 const RING_RADII = [32, 64, 96];
+const LABELLED_RINGS = RING_RADII.slice(0, 2);
 const PATH_HALF_LENGTH = 400;
 const PLANE_ICON_TILT = 45;
 const PLANE_PATH =
@@ -36,6 +36,7 @@ function screenPosition(plane: NearbyPlane, heading: number) {
 export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
   const highlighted = planes.find((plane) => plane.id === highlightedId);
   const north = toRadians(-heading);
+  const placed = planes.map((plane) => ({ plane, ...screenPosition(plane, heading) }));
   const label = highlighted
     ? `Map turned to where you face: ${highlighted.flight} ${formatDistance(highlighted.distanceNm)} ${compassDirection(highlighted.bearingDeg)} of you`
     : 'Map of the sky around you, no planes close';
@@ -59,8 +60,7 @@ export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
         />
       ))}
 
-      {planes.map((plane) => {
-        const { x, y, rotation } = screenPosition(plane, heading);
+      {placed.map(({ plane, x, y, rotation }) => {
         const dx = Math.sin(toRadians(rotation)) * PATH_HALF_LENGTH;
         const dy = -Math.cos(toRadians(rotation)) * PATH_HALF_LENGTH;
         return (
@@ -78,26 +78,19 @@ export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
       })}
 
       <Path d="M150 100 L139 76 A26 26 0 0 1 161 76 Z" fill="rgba(255,255,255,0.16)" />
-      <SvgText
-        x={CENTER.x}
-        y={135}
-        textAnchor="middle"
-        fontSize={10}
-        fontWeight="600"
-        fill={colors.textSecondary}
-      >
-        1 km
-      </SvgText>
-      <SvgText
-        x={CENTER.x}
-        y={167}
-        textAnchor="middle"
-        fontSize={10}
-        fontWeight="600"
-        fill={colors.textSecondary}
-      >
-        2 km
-      </SvgText>
+      {LABELLED_RINGS.map((radius) => (
+        <SvgText
+          key={radius}
+          x={CENTER.x}
+          y={CENTER.y + radius + 3}
+          textAnchor="middle"
+          fontSize={10}
+          fontWeight="600"
+          fill={colors.textSecondary}
+        >
+          {`${radius / PX_PER_KM} km`}
+        </SvgText>
+      ))}
       <SvgText
         x={CENTER.x + 96 * Math.sin(north)}
         y={CENTER.y + 4 - 96 * Math.cos(north)}
@@ -109,23 +102,20 @@ export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
         N
       </SvgText>
 
-      {planes.map((plane) => {
-        const { x, y, rotation } = screenPosition(plane, heading);
-        return (
-          <G
-            key={plane.id}
-            transform={`translate(${x} ${y}) rotate(${rotation - PLANE_ICON_TILT}) translate(-12 -12)`}
-          >
-            <Path
-              d={PLANE_PATH}
-              fill={colors.background}
-              stroke={plane.id === highlightedId ? colors.accent : colors.textSecondary}
-              strokeWidth={2}
-              strokeLinejoin="round"
-            />
-          </G>
-        );
-      })}
+      {placed.map(({ plane, x, y, rotation }) => (
+        <G
+          key={plane.id}
+          transform={`translate(${x} ${y}) rotate(${rotation - PLANE_ICON_TILT}) translate(-12 -12)`}
+        >
+          <Path
+            d={PLANE_PATH}
+            fill={colors.background}
+            stroke={plane.id === highlightedId ? colors.accent : colors.textSecondary}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
+        </G>
+      ))}
 
       <Circle cx={CENTER.x} cy={CENTER.y} r={5} fill={colors.text} />
     </Svg>

@@ -1,5 +1,5 @@
 const COMPASS_POINTS = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
-const KM_PER_NM = 1.852;
+export const KM_PER_NM = 1.852;
 const METERS_PER_FOOT = 0.3048;
 const METERS_PER_NM = 1852;
 
