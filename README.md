@@ -63,7 +63,7 @@ The server runs on a Google Cloud e2-micro VM as a systemd service, behind Caddy
 ## Quality
 
 ```bash
-npm test          # Vitest: policy scenarios on a fake clock, watcher and API with fakes
+npm test          # Vitest: real-world scenarios on a fake clock, APNs over local HTTP/2, captured feed data, app math
 npm run typecheck
 npm run lint
 ```
