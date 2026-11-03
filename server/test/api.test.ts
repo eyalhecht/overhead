@@ -32,6 +32,18 @@ describe('API', () => {
     expect(users.all()).toHaveLength(1);
   });
 
+  it('logs a phone the first time it checks in, and stays quiet after that', async () => {
+    const log = vi.mocked(console.log);
+    await authorized(request(app).post('/register'))
+      .send(registerRequest({ deviceId: 'AC1C8C25-1234' }))
+      .expect(204);
+    await authorized(request(app).post('/register'))
+      .send(registerRequest({ deviceId: 'AC1C8C25-1234' }))
+      .expect(204);
+
+    expect(log.mock.calls.flat()).toEqual(['[AC1C8C25] phone checked in']);
+  });
+
   it('rejects an invalid registration', async () => {
     const response = await authorized(request(app).post('/register'))
       .send(registerRequest({ lat: 999 }))

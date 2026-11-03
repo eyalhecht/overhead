@@ -2,7 +2,7 @@ import { CardQuerySchema, PlanesQuerySchema, RegisterRequestSchema, type GeoPoin
 import { Router } from 'express';
 import type { Watcher } from '../activity/watcher.js';
 import type { Sky } from '../flights/sky.js';
-import type { UserStore } from '../users.js';
+import { userLabel, type UserStore } from '../users.js';
 
 export interface RouterDependencies {
   users: UserStore;
@@ -16,7 +16,9 @@ export function createRouter({ users, sky, watcher, demoLocation }: RouterDepend
 
   router.post('/register', async (req, res) => {
     const request = RegisterRequestSchema.parse(req.body);
+    const isNewPhone = !users.find(request.deviceId);
     const user = users.upsert(request);
+    if (isNewPhone) console.log(`${userLabel(user)} phone checked in`);
     await watcher.reportActivityTokens(user, request.activityTokens);
     res.status(204).end();
   });

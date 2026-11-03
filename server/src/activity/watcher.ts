@@ -1,7 +1,7 @@
 import type { ActivityProps, GeoPoint, NearbyPlane } from '@overhead/shared';
 import type { Sky } from '../flights/sky.js';
 import type { LiveActivityEvent, PushClient } from '../push/apns.js';
-import { isQuietTime, type User, type UserStore } from '../users.js';
+import { isQuietTime, userLabel, type User, type UserStore } from '../users.js';
 import { acknowledgeActivityToken, nextStep, type Action } from './policy.js';
 
 const TICK_INTERVAL_MS = 5000;
@@ -37,7 +37,7 @@ export function createWatcher({
       try {
         await watch(user);
       } catch (error) {
-        console.warn(`${label(user)} watch failed: ${(error as Error).message}`);
+        console.warn(`${userLabel(user)} watch failed: ${(error as Error).message}`);
       }
     }
   }
@@ -63,13 +63,14 @@ export function createWatcher({
     if (!user.startToken) return false;
     const result = await push.send(user.startToken, 'start', props);
     if (result === 'token-invalid') user.startToken = undefined;
-    if (result === 'delivered') console.log(`${label(user)} card started: ${props.flight} ${props.stage}`);
+    if (result === 'delivered')
+      console.log(`${userLabel(user)} card started: ${props.flight} ${props.stage}`);
     return result === 'delivered';
   }
 
   function planesAbove(user: User, point: GeoPoint): Promise<NearbyPlane[]> {
     return sky.planesAbove(point).catch((error: Error): NearbyPlane[] => {
-      console.warn(`${label(user)} cannot see the sky: ${error.message}`);
+      console.warn(`${userLabel(user)} cannot see the sky: ${error.message}`);
       return [];
     });
   }
@@ -81,7 +82,7 @@ export function createWatcher({
       case 'end':
         return sendToActivities(user, 'end', action.props, [...user.activityTokens]);
       case 'back-off':
-        console.warn(`${label(user)} card never confirmed, pausing new cards`);
+        console.warn(`${userLabel(user)} card never confirmed, pausing new cards`);
         return;
       case 'none':
         return;
@@ -132,8 +133,4 @@ export function createWatcher({
     tick,
     reportActivityTokens,
   };
-}
-
-function label(user: User): string {
-  return `[${user.deviceId.slice(0, 8)}]`;
 }
