@@ -61,7 +61,8 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
       <ZStack alignment="top" modifiers={[frame({ width, height: top + rise + lineWidth }), clipped()]}>
         <Circle
           modifiers={[
-            strokeBorder({ content: arcColor, style: { lineWidth } }),
+            foregroundStyle('clear'),
+            strokeBorder({ content: arcColor, style: { lineWidth }, shape: 'circle' }),
             frame({ width: radius * 2, height: radius * 2 }),
             offset({ y: top }),
           ]}
