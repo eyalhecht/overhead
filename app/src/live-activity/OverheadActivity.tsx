@@ -1,5 +1,14 @@
 import { HStack, Image, Spacer, Text, VStack } from '@expo/ui/swift-ui';
-import { font, foregroundStyle, opacity, padding } from '@expo/ui/swift-ui/modifiers';
+import {
+  font,
+  foregroundStyle,
+  layoutPriority,
+  lineLimit,
+  minimumScaleFactor,
+  opacity,
+  padding,
+  truncationMode,
+} from '@expo/ui/swift-ui/modifiers';
 import type { ActivityProps, Route } from '@overhead/shared';
 import { createLiveActivity, type LiveActivityEnvironment } from 'expo-widgets';
 
@@ -14,9 +23,10 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
   const stage = environment.isStale ? 'passed' : props.stage;
   const status = { approaching: 'Approaching', overhead: 'Above you now', passed: 'Passed' }[stage];
   const details = [props.airline ?? props.flight, props.aircraft].filter(Boolean).join(' · ');
+  const islandCornerInset = 12;
 
   const statusLine = (size: number) => (
-    <HStack spacing={6}>
+    <HStack spacing={6} modifiers={[layoutPriority(1)]}>
       <Image systemName="airplane" size={size} color={accent} />
       <Text modifiers={[font({ size, weight: 'semibold' }), foregroundStyle(accent)]}>{status}</Text>
     </HStack>
@@ -39,11 +49,23 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
         {airport(route.to, route.toCity, 'trailing', size)}
       </HStack>
     ) : (
-      <Text modifiers={[font({ size: size * 0.7, weight: 'bold' })]}>Route unknown</Text>
+      <Text modifiers={[font({ size: size * 0.7, weight: 'bold' }), lineLimit(1), minimumScaleFactor(0.6)]}>
+        Route unknown
+      </Text>
     );
 
   const detailsLine = (size: number) => (
-    <Text modifiers={[font({ size, weight: 'medium' }), opacity(0.6)]}>{details}</Text>
+    <Text
+      modifiers={[
+        font({ size, weight: 'medium' }),
+        opacity(0.6),
+        lineLimit(1),
+        minimumScaleFactor(0.8),
+        truncationMode('tail'),
+      ]}
+    >
+      {details}
+    </Text>
   );
 
   if (environment.isActivityFullscreen) {
@@ -78,10 +100,10 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
     minimal: <Image systemName="airplane" size={13} color={accent} />,
     expandedLeading: props.route
       ? airport(props.route.from, props.route.fromCity, 'leading', 30)
-      : routeRow(null, 30),
+      : routeRow(null, 24),
     expandedTrailing: props.route ? airport(props.route.to, props.route.toCity, 'trailing', 30) : undefined,
     expandedBottom: (
-      <HStack>
+      <HStack modifiers={[padding({ horizontal: islandCornerInset, bottom: 4 })]}>
         {statusLine(13)}
         <Spacer />
         {detailsLine(13)}
