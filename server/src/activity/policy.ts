@@ -5,7 +5,7 @@ export const ACTIVITY_RULES = {
   passedLingerMs: 20_000,
   circlingLimitMs: 10 * 60_000,
   renewAfterMs: 20 * 60_000,
-  maxStartsPerHour: 5,
+  maxStartsPerHour: 10,
   tokenWaitMs: 60_000,
   backoffMs: 15 * 60_000,
 } as const;
