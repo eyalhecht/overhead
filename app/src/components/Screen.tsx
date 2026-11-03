@@ -5,12 +5,18 @@ import { colors } from '@/lib/theme';
 
 interface ScreenProps {
   scrollable?: boolean;
+  sheet?: boolean;
   style?: ViewStyle;
 }
 
-export function Screen({ children, scrollable = false, style }: PropsWithChildren<ScreenProps>) {
+export function Screen({
+  children,
+  scrollable = false,
+  sheet = false,
+  style,
+}: PropsWithChildren<ScreenProps>) {
   const insets = useSafeAreaInsets();
-  const inset = { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 };
+  const inset = { paddingTop: (sheet ? 0 : insets.top) + 16, paddingBottom: insets.bottom + 24 };
 
   if (scrollable) {
     return (
