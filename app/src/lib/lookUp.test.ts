@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { NearbyPlane } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import { KM_PER_NM } from './format';
-import { lookUpGuide, tapsWhenFacing } from './lookUp';
+import { elevationHint, lookUpGuide, tapsWhenFacing } from './lookUp';
 
 type TrackSample = Pick<NearbyPlane, 'distanceNm' | 'bearingDeg' | 'trackDeg' | 'altitudeFt'> & {
   time: string;
@@ -101,5 +101,18 @@ describe('a real flight: Israir ISR053 climbing over Ramat Gan', () => {
         expect(lookUpGuide(plane(sample), heading).arrowDeg).toBeCloseTo(offset);
       }
     }
+  });
+});
+
+describe('how high to look, in words', () => {
+  it.each([
+    [2, 'Look low, just above the horizon'],
+    [19, 'Look low, just above the horizon'],
+    [20, 'Look about halfway up the sky'],
+    [59, 'Look about halfway up the sky'],
+    [60, 'Look almost straight up'],
+    [90, 'Look almost straight up'],
+  ])('at %i° says "%s"', (elevationDeg, words) => {
+    expect(elevationHint(elevationDeg)).toBe(words);
   });
 });
