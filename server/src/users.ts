@@ -63,6 +63,10 @@ export function createUserStore(maxUsers = 100): UserStore {
   };
 }
 
+export function userLabel({ deviceId }: Pick<User, 'deviceId'>): string {
+  return `[${deviceId.slice(0, 8)}]`;
+}
+
 export function isQuietTime(user: Pick<User, 'quietHours' | 'utcOffsetMinutes'>, now: number): boolean {
   if (!user.quietHours) return false;
   const [from, to] = user.quietHours;
