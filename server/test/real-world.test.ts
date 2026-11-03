@@ -1,5 +1,6 @@
-import type { NearbyPlane, RegisterRequest } from '@overhead/shared';
+import type { NearbyPlane, PassStage, RegisterRequest } from '@overhead/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ACTIVITY_RULES } from '../src/activity/policy.js';
 import { createWatcher, type Watcher } from '../src/activity/watcher.js';
 import { pushPriority } from '../src/push/apns.js';
 import { createUserStore, type User, type UserStore } from '../src/users.js';
@@ -63,17 +64,32 @@ class World {
   }
 }
 
+const INBOUND_MS = 75_000;
+const APPROACHING_MS = 45_000;
+const STAGE_ORDER: PassStage[] = ['overhead', 'approaching', 'inbound'];
+
+function stageAt(intoPassMs: number, overheadMs: number): PassStage | null {
+  if (intoPassMs < 0) return null;
+  if (intoPassMs < INBOUND_MS) return 'inbound';
+  if (intoPassMs < INBOUND_MS + APPROACHING_MS) return 'approaching';
+  return intoPassMs < INBOUND_MS + APPROACHING_MS + overheadMs ? 'overhead' : null;
+}
+
 const passing =
-  (flight: string, fromMs: number, seconds: number, overrides: Partial<NearbyPlane> = {}) =>
+  (flight: string, firstSeenAtMs: number, overheadSeconds: number, overrides: Partial<NearbyPlane> = {}) =>
   (elapsedMs: number): NearbyPlane[] => {
-    const secondsLeft = Math.round((fromMs + seconds * 1000 - elapsedMs) / 1000);
-    return elapsedMs >= fromMs && secondsLeft > 0 ? [nearbyPlane(flight, { secondsLeft, ...overrides })] : [];
+    const stage = stageAt(elapsedMs - firstSeenAtMs, overheadSeconds * 1000);
+    return stage ? [nearbyPlane(flight, { stage, ...overrides })] : [];
   };
 
 const together =
   (...skies: ((elapsedMs: number) => NearbyPlane[])[]) =>
   (elapsedMs: number) =>
-    skies.flatMap((sky) => sky(elapsedMs));
+    skies
+      .flatMap((sky) => sky(elapsedMs))
+      .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage));
+
+const UNTIL_OVERHEAD_MS = INBOUND_MS + APPROACHING_MS + 5000;
 
 describe('real-world situations', () => {
   let world: World;
@@ -86,9 +102,9 @@ describe('real-world situations', () => {
 
   it('keeps one card through a short gap in ADS-B coverage', async () => {
     world.join();
-    const plane = passing('ELY001', 0, 120);
+    const plane = passing('ELY001', 0, 90);
     const withGap = (elapsedMs: number) =>
-      elapsedMs > 40_000 && elapsedMs <= 55_000 ? [] : plane(elapsedMs);
+      elapsedMs > 150_000 && elapsedMs <= 160_000 ? [] : plane(elapsedMs);
 
     await world.run(5 * MINUTE_MS, withGap);
 
@@ -98,7 +114,7 @@ describe('real-world situations', () => {
 
   it('ends the card when the position feed goes down mid-pass', async () => {
     world.join();
-    await world.run(30_000, passing('ELY001', 0, 600));
+    await world.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 600));
 
     world.sky.feedDown = true;
     await world.run(3 * MINUTE_MS);
@@ -106,17 +122,16 @@ describe('real-world situations', () => {
     expect(world.pushes('end')).toHaveLength(1);
   });
 
-  it('does not show a hovering helicopter again after an airliner passes beneath it', async () => {
+  it('does not show a circling helicopter again after an airliner passes beneath it', async () => {
     world.join();
+    const startedAt = world.now;
     const helicopter = (elapsedMs: number) =>
-      elapsedMs < 40 * MINUTE_MS ? [nearbyPlane('POLICE1', { secondsLeft: 60, distanceNm: 0.8 })] : [];
+      elapsedMs < 40 * MINUTE_MS ? [nearbyPlane('POLICE1', { distanceNm: 0.8 })] : [];
     const airliner = passing('ELY001', 15 * MINUTE_MS, 90, { distanceNm: 0.3 });
 
-    await world.run(45 * MINUTE_MS, (elapsedMs) =>
-      [...airliner(elapsedMs), ...helicopter(elapsedMs)].sort((a, b) => a.distanceNm - b.distanceNm),
-    );
+    await world.run(45 * MINUTE_MS, together(airliner, helicopter));
 
-    const airlinerGoneAt = world.now - 45 * MINUTE_MS + 15 * MINUTE_MS + 90_000;
+    const airlinerGoneAt = startedAt + 15 * MINUTE_MS + UNTIL_OVERHEAD_MS + 90_000;
     const helicopterShownAgain = world
       .pushes()
       .filter(({ at, event, props }) => at > airlinerGoneAt && event !== 'end' && props.flight === 'POLICE1');
@@ -137,12 +152,12 @@ describe('real-world situations', () => {
 
   it('lets the current card finish but starts no new one after Live Activities are turned off', async () => {
     const user = world.join();
-    await world.run(30_000, passing('ELY001', 0, 90));
+    await world.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 90));
 
     world.join({ startToken: undefined, activityTokens: [...user.activityTokens] });
     await world.run(
       10 * MINUTE_MS,
-      together(passing('ELY001', -30_000, 90), passing('WZZ63', 5 * MINUTE_MS, 90)),
+      together(passing('ELY001', -UNTIL_OVERHEAD_MS, 90), passing('WZZ63', 5 * MINUTE_MS, 90)),
     );
 
     expect(world.pushes('start').map(({ props }) => props.flight)).toEqual(['ELY001']);
@@ -151,7 +166,7 @@ describe('real-world situations', () => {
 
   it('closes a card left on the phone from before a server restart', async () => {
     world.join();
-    await world.run(30_000, passing('ELY001', 0, 600));
+    await world.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 600));
 
     world.restartServer();
     const user = world.join();
@@ -195,16 +210,23 @@ describe('real-world situations', () => {
     expect(world.pushes('start').map(({ token }) => token)).toEqual(['tel-aviv-start']);
   });
 
-  describe('under a busy approach path, a plane every 90 seconds for three hours', () => {
-    const approachPath = (elapsedMs: number): NearbyPlane[] => {
-      const slot = Math.floor(elapsedMs / 90_000);
-      const intoSlot = (elapsedMs % 90_000) / 1000;
-      return intoSlot < 60 ? [nearbyPlane(`ELY${slot}`, { secondsLeft: Math.round(60 - intoSlot) })] : [];
-    };
+  describe('under a busy approach path, a plane every 2 minutes for three hours', () => {
+    const PLANES = 3 * 30;
+    const approachPath = together(
+      ...Array.from({ length: PLANES }, (_, index) => passing(`ELY${index}`, index * 120_000, 30)),
+    );
 
     beforeEach(async () => {
       world.join();
       await world.run(3 * 60 * MINUTE_MS, approachPath);
+    });
+
+    it('keeps one card that switches between planes, instead of a new card per plane', () => {
+      const renewalsInThreeHours = (3 * 60 * MINUTE_MS) / ACTIVITY_RULES.renewAfterMs;
+      expect(world.pushes('start').length).toBeLessThanOrEqual(renewalsInThreeHours + 1);
+      expect(new Set(world.pushes('update').map(({ props }) => props.flight)).size).toBeGreaterThan(
+        PLANES / 2,
+      );
     });
 
     it('stays inside the iOS budget for urgent pushes in every hour', () => {
@@ -250,7 +272,7 @@ describe('real-world situations', () => {
         world
           .pushes()
           .filter(({ event }) => event !== 'end')
-          .flatMap(({ props }) => [props.flight, props.second?.flight]),
+          .map(({ props }) => props.flight),
       );
 
     it('shows every plane, never pauses and closes every card afterwards', async () => {

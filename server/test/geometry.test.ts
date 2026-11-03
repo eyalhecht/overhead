@@ -1,9 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { isOverhead, OVERHEAD_RADIUS_NM, secondsUntilExit, type Aircraft } from '../src/flights/geometry.js';
+import { closestApproach, passStage, type Aircraft } from '../src/flights/geometry.js';
 
-const isr053Climb: { samples: { distanceNm: number; altitudeFt: number; groundSpeedKt: number }[] } =
-  JSON.parse(readFileSync(new URL('./fixtures/isr053-climb-over-ramat-gan.json', import.meta.url), 'utf8'));
+interface TrackSample extends Pick<
+  Aircraft,
+  'altitudeFt' | 'groundSpeedKt' | 'trackDeg' | 'distanceNm' | 'bearingDeg'
+> {
+  time: string;
+}
+
+const isr053: { samples: TrackSample[] } = JSON.parse(
+  readFileSync(new URL('./fixtures/isr053-climb-over-ramat-gan.json', import.meta.url), 'utf8'),
+);
 
 const aircraft = (overrides: Partial<Aircraft> = {}): Aircraft => ({
   id: 'abc123',
@@ -16,60 +24,89 @@ const aircraft = (overrides: Partial<Aircraft> = {}): Aircraft => ({
   ...overrides,
 });
 
-describe('isOverhead', () => {
-  it('accepts a low plane inside the circle', () => {
-    expect(isOverhead(aircraft({ distanceNm: 1.2, altitudeFt: 5500 }))).toBe(true);
+const secondsBetween = (from: string, to: string) =>
+  (Date.parse(`2026-11-03T${to}Z`) - Date.parse(`2026-11-03T${from}Z`)) / 1000;
+
+describe('closestApproach', () => {
+  it('meets a plane heading straight at you when it reaches you: 2 nm at 240 kn is 30 s', () => {
+    const plane = aircraft({ distanceNm: 2, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
+    expect(closestApproach(plane)).toEqual({ distanceNm: 0, inSeconds: 30 });
   });
 
-  it('keeps a departure that climbs past 6,000 ft right above you', () => {
-    const isr053AboveRamatGan = aircraft({
-      flight: 'ISR053',
-      distanceNm: 0.15,
-      altitudeFt: 6075,
-      groundSpeedKt: 297,
-    });
-    const isr053TenSecondsLater = aircraft({
-      flight: 'ISR053',
-      distanceNm: 1.02,
-      altitudeFt: 6875,
-      groundSpeedKt: 296,
-    });
-
-    expect(isOverhead(isr053AboveRamatGan)).toBe(true);
-    expect(isOverhead(isr053TenSecondsLater)).toBe(true);
+  it('finds how close a plane flying past you will get', () => {
+    const plane = aircraft({ distanceNm: 2, bearingDeg: 0, trackDeg: 90, groundSpeedKt: 120 });
+    expect(closestApproach(plane)).toEqual({ distanceNm: 2, inSeconds: 0 });
   });
 
-  it('counts a real departure for its whole pass inside the circle, not just until it climbs', () => {
-    const { samples } = isr053Climb;
-    const insideCircle = samples.filter(({ distanceNm }) => distanceNm <= OVERHEAD_RADIUS_NM);
-
-    expect(insideCircle.every((sample) => isOverhead(aircraft(sample)))).toBe(true);
-    expect(insideCircle.length).toBeGreaterThan(10);
-  });
-
-  it('rejects a plane that is too high', () => {
-    expect(isOverhead(aircraft({ altitudeFt: 30000 }))).toBe(false);
-  });
-
-  it('rejects a plane outside the circle', () => {
-    expect(isOverhead(aircraft({ distanceNm: 4 }))).toBe(false);
+  it('is now for a plane flying away', () => {
+    const plane = aircraft({ distanceNm: 2, bearingDeg: 90, trackDeg: 90 });
+    expect(closestApproach(plane)).toEqual({ distanceNm: 2, inSeconds: 0 });
   });
 });
 
-describe('secondsUntilExit', () => {
-  it('crosses half the circle from straight above: 1.5 nm at 120 kn is 45 s', () => {
-    expect(secondsUntilExit(aircraft())).toBe(45);
+describe('passStage', () => {
+  it('is overhead for a low plane inside the circle', () => {
+    expect(passStage(aircraft({ distanceNm: 1.2, altitudeFt: 5500 }))).toBe('overhead');
   });
 
-  it('is 0 for a plane on the edge flying away', () => {
-    expect(secondsUntilExit(aircraft({ distanceNm: 1.5, bearingDeg: 90, trackDeg: 90 }))).toBe(0);
+  it('is approaching for a plane that will pass over you within 45 seconds', () => {
+    const plane = aircraft({ distanceNm: 3, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
+    expect(passStage(plane)).toBe('approaching');
   });
 
-  it('crosses the whole circle when entering on the edge: 3 nm at 120 kn is 90 s', () => {
-    expect(secondsUntilExit(aircraft({ distanceNm: 1.5, bearingDeg: 90, trackDeg: 270 }))).toBe(90);
+  it('is inbound for a plane that will pass over you within two minutes, but not yet in 45 seconds', () => {
+    const plane = aircraft({ distanceNm: 6, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
+    expect(passStage(plane)).toBe('inbound');
   });
 
-  it('gives hovering aircraft a rolling minute', () => {
-    expect(secondsUntilExit(aircraft({ groundSpeedKt: 0, distanceNm: 0.5 }))).toBe(60);
+  it('ignores a plane that will pass over you, but not for a few minutes', () => {
+    const plane = aircraft({ distanceNm: 12, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
+    expect(passStage(plane)).toBeNull();
+  });
+
+  it('ignores a plane that will pass by, but not close enough', () => {
+    const plane = aircraft({ distanceNm: 2, bearingDeg: 0, trackDeg: 90, groundSpeedKt: 240 });
+    expect(passStage(plane)).toBeNull();
+  });
+
+  it('ignores a plane flying away from you', () => {
+    expect(passStage(aircraft({ distanceNm: 2, bearingDeg: 90, trackDeg: 90 }))).toBeNull();
+  });
+
+  it('ignores a plane above 10,000 ft', () => {
+    expect(passStage(aircraft({ altitudeFt: 10_500 }))).toBeNull();
+  });
+
+  it('ignores a hovering helicopter right above you', () => {
+    expect(passStage(aircraft({ groundSpeedKt: 5, altitudeFt: 800 }))).toBeNull();
+  });
+});
+
+describe('a real departure: Israir ISR053 climbing over Ramat Gan', () => {
+  const stages = isr053.samples.map((sample) => ({ time: sample.time, stage: passStage(aircraft(sample)) }));
+  const closest = isr053.samples.reduce((best, sample) =>
+    sample.distanceNm < best.distanceNm ? sample : best,
+  );
+
+  it('is approaching about 30 seconds ahead, even while still turning onto its course', () => {
+    const firstSeen = stages.find(({ stage }) => stage === 'approaching' || stage === 'overhead');
+    const leadSeconds = secondsBetween(firstSeen?.time ?? closest.time, closest.time);
+
+    expect(firstSeen?.stage).toBe('approaching');
+    expect(leadSeconds).toBeGreaterThanOrEqual(25);
+    expect(leadSeconds).toBeLessThanOrEqual(60);
+  });
+
+  it('stays on the card from the first sighting until it leaves the circle', () => {
+    const firstSeen = stages.findIndex(({ stage }) => stage === 'approaching');
+    const lastOverhead = stages.map(({ stage }) => stage).lastIndexOf('overhead');
+
+    const onCard = stages.slice(firstSeen, lastOverhead + 1);
+    expect(onCard.every(({ stage }) => stage === 'approaching' || stage === 'overhead')).toBe(true);
+  });
+
+  it('is overhead while it climbs past 6,000 ft right above you', () => {
+    const climbingPast6000 = isr053.samples.find((sample) => sample.altitudeFt > 6000);
+    expect(passStage(aircraft(climbingPast6000))).toBe('overhead');
   });
 });

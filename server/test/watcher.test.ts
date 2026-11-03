@@ -28,33 +28,36 @@ describe('watcher', () => {
   };
 
   it('starts a card on the start token, then updates and ends it on the card token', async () => {
-    sky.planes = [nearbyPlane('BAW1')];
+    sky.planes = [nearbyPlane('BAW1', { stage: 'approaching' })];
     await watcher.tick();
     await watcher.reportActivityTokens(user, ['card-1']);
-    await tickAfter(ACTIVITY_RULES.refreshIntervalMs);
+    sky.planes = [nearbyPlane('BAW1', { stage: 'overhead' })];
+    await tickAfter(5000);
     sky.planes = [];
     await tickAfter(5000);
-    await tickAfter(ACTIVITY_RULES.gracePeriodMs);
+    await tickAfter(ACTIVITY_RULES.passedLingerMs);
 
-    expect(push.sent.map(({ token, event }) => `${event}:${token}`)).toEqual([
-      'start:start-token',
-      'update:card-1',
-      'end:card-1',
+    expect(push.sent.map(({ token, event, props }) => `${event}:${token}:${props.stage}`)).toEqual([
+      'start:start-token:approaching',
+      'update:card-1:overhead',
+      'update:card-1:passed',
+      'end:card-1:passed',
     ]);
     expect(user.activityTokens.size).toBe(0);
   });
 
-  it('skips planes without a known route', async () => {
-    sky.planes = [nearbyPlane('UNKNOWN', { route: null })];
+  it('shows planes without a known route', async () => {
+    sky.planes = [nearbyPlane('4XCDO', { route: null })];
     await watcher.tick();
-    expect(push.sent).toEqual([]);
+    expect(push.sent).toMatchObject([{ event: 'start', props: { flight: '4XCDO', route: null } }]);
   });
 
   it('ends a card at once when its token arrives after the plane has gone', async () => {
     sky.planes = [nearbyPlane('BAW1')];
     await watcher.tick();
     sky.planes = [];
-    await tickAfter(ACTIVITY_RULES.gracePeriodMs + 5000);
+    await tickAfter(5000);
+    await tickAfter(ACTIVITY_RULES.passedLingerMs);
     await watcher.reportActivityTokens(user, ['late-card']);
 
     expect(push.sent.at(-1)).toMatchObject({ event: 'end', token: 'late-card', props: { flight: 'BAW1' } });

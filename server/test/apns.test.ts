@@ -19,15 +19,11 @@ interface AppleReply {
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url));
 
 const card: ActivityProps = {
-  from: 'AUH',
-  fromCity: 'Abu Dhabi',
-  to: 'TLV',
-  toCity: 'Tel Aviv',
   flight: 'ETD597',
+  airline: 'Etihad Airways',
   aircraft: 'A321neo',
-  altitudeFt: 2400,
-  endsAt: Date.UTC(2026, 10, 1, 12, 1, 30),
-  more: 0,
+  route: { from: 'AUH', fromCity: 'Abu Dhabi', to: 'TLV', toCity: 'Tel Aviv' },
+  stage: 'approaching',
 };
 
 class FakeApple {
@@ -200,9 +196,19 @@ describe('Live Activity payload', () => {
     });
   });
 
-  it('marks the card stale 30 seconds after the plane is expected to leave', () => {
+  it('opens the Where to look screen when the card is tapped', () => {
+    const { aps } = buildLiveActivityPayload('start', card, nowSeconds);
+    expect(aps).toMatchObject({ attributes: { url: 'overhead://look-up' } });
+  });
+
+  it('names a plane without a known route by its aircraft in the alert', () => {
+    const { aps } = buildLiveActivityPayload('start', { ...card, route: null }, nowSeconds);
+    expect(aps).toMatchObject({ alert: { body: 'A321neo' } });
+  });
+
+  it('marks the card stale when no update arrives for a minute', () => {
     const { aps } = buildLiveActivityPayload('update', card, nowSeconds);
-    expect(aps).toMatchObject({ 'stale-date': card.endsAt / 1000 + 30 });
+    expect(aps).toMatchObject({ 'stale-date': nowSeconds + 60 });
   });
 
   it('dismisses an ended card at once', () => {

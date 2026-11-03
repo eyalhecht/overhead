@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { aircraftName, rareAircraftName } from '../src/flights/aircraft.js';
+import { aircraftName } from '../src/flights/aircraft.js';
+import { airlineName } from '../src/flights/airlines.js';
 
 describe('aircraftName', () => {
   it('turns ICAO type codes into the names people know', () => {
@@ -13,10 +14,19 @@ describe('aircraftName', () => {
   });
 });
 
-describe('rareAircraftName', () => {
-  it('names rare aircraft only', () => {
-    expect(rareAircraftName('B748')).toBe('747-8');
-    expect(rareAircraftName('A388')).toBe('A380');
-    expect(rareAircraftName('A20N')).toBeUndefined();
+describe('airlineName', () => {
+  it('names the airline from the callsign prefix', () => {
+    expect(airlineName('ISR053')).toBe('Israir');
+    expect(airlineName('ETD9702')).toBe('Etihad Airways');
+    expect(airlineName('ELY386')).toBe('El Al Israel Airlines');
+  });
+
+  it('gives no airline for private aircraft that fly under their registration', () => {
+    expect(airlineName('4XHSC')).toBeUndefined();
+    expect(airlineName('N')).toBeUndefined();
+  });
+
+  it('gives no airline for an unknown prefix', () => {
+    expect(airlineName('QZQ123')).toBeUndefined();
   });
 });
