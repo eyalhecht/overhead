@@ -1,28 +1,9 @@
 import type { GeoPoint, NearbyPlane } from '@overhead/shared';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { fetchPlanesAbove } from '@/services/api';
-
-const REFRESH_INTERVAL_MS = 5000;
+import { usePolling } from './usePolling';
 
 export function useNearbyPlanes(location: GeoPoint | undefined): NearbyPlane[] {
-  const [planes, setPlanes] = useState<NearbyPlane[]>([]);
-
-  useEffect(() => {
-    if (!location) return;
-    let active = true;
-
-    const refresh = () =>
-      fetchPlanesAbove(location)
-        .then((latest) => active && setPlanes(latest))
-        .catch(() => undefined);
-
-    void refresh();
-    const interval = setInterval(refresh, REFRESH_INTERVAL_MS);
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, [location]);
-
-  return planes;
+  const load = useMemo(() => (location ? () => fetchPlanesAbove(location) : undefined), [location]);
+  return usePolling(load, []);
 }

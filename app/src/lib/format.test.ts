@@ -1,9 +1,12 @@
+import type { ActivityProps } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  cardDetails,
+  cardTitle,
   compassDirection,
   describeDirection,
+  describeStage,
   elevationAngle,
-  formatCountdown,
   formatDistance,
   relativeBearing,
 } from './format';
@@ -56,16 +59,43 @@ describe('where to look', () => {
   });
 });
 
-describe('numbers on the card', () => {
+describe('what the card says', () => {
+  const card: ActivityProps = {
+    flight: 'ISR053',
+    airline: 'Israir',
+    aircraft: 'A320',
+    route: { from: 'TLV', fromCity: 'Tel Aviv', to: 'ETM', toCity: 'Eilat' },
+    stage: 'approaching',
+  };
+
   it.each([
-    [100, '1:40'],
-    [59, '0:59'],
-    [60, '1:00'],
-    [0, '0:00'],
-  ])('shows %i seconds as %s', (seconds, text) => {
-    expect(formatCountdown(seconds)).toBe(text);
+    ['approaching', 'Approaching'],
+    ['overhead', 'Above you now'],
+    ['passed', 'Passed'],
+  ] as const)('says %s as "%s"', (stage, words) => {
+    expect(describeStage(stage)).toBe(words);
   });
 
+  it('titles the card with the two cities', () => {
+    expect(cardTitle(card)).toBe('Tel Aviv → Eilat');
+  });
+
+  it('says the route is unknown when it is', () => {
+    expect(cardTitle({ ...card, route: null })).toBe('Route unknown');
+  });
+
+  it('names the airline and the aircraft', () => {
+    expect(cardDetails(card)).toBe('Israir · A320');
+  });
+
+  it('falls back to the callsign when the airline is unknown', () => {
+    expect(cardDetails({ ...card, airline: undefined, aircraft: 'C25A', flight: '4XCDO' })).toBe(
+      '4XCDO · C25A',
+    );
+  });
+});
+
+describe('numbers on the app screen', () => {
   it('shows distance in kilometres', () => {
     expect(formatDistance(0.5)).toBe('0.9 km');
   });

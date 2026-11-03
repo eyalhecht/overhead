@@ -1,26 +1,29 @@
+import type { ActivityProps, NearbyPlane } from '@overhead/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { RoutedPlane } from '@overhead/shared';
-import { compassDirection, formatAltitude, formatCountdown, formatDistance } from '@/lib/format';
-import { colors, radius } from '@/lib/theme';
+import {
+  cardDetails,
+  cardTitle,
+  compassDirection,
+  describeStage,
+  formatAltitude,
+  formatDistance,
+} from '@/lib/format';
+import { colors } from '@/lib/theme';
 
 interface FlightCardProps {
-  main: RoutedPlane;
-  second?: RoutedPlane;
+  card: ActivityProps;
+  plane?: NearbyPlane;
   onPress: () => void;
 }
 
-export function FlightCard({ main, second, onPress }: FlightCardProps) {
-  const status = main.rare
-    ? `RARE · ${main.rare}`
-    : second
-      ? '2 planes above you now'
-      : `Above you now · ~${formatCountdown(main.secondsLeft)} left`;
-  const details = [
-    compassDirection(main.bearingDeg),
-    formatDistance(main.distanceNm),
-    formatAltitude(main.altitudeFt),
-    second ? `~${formatCountdown(main.secondsLeft)} left` : main.flight,
-  ].join(' · ');
+export function FlightCard({ card, plane, onPress }: FlightCardProps) {
+  const position =
+    plane &&
+    [
+      compassDirection(plane.bearingDeg),
+      formatDistance(plane.distanceNm),
+      formatAltitude(plane.altitudeFt),
+    ].join(' · ');
 
   return (
     <Pressable
@@ -29,29 +32,21 @@ export function FlightCard({ main, second, onPress }: FlightCardProps) {
       accessibilityHint="Shows where to look"
       onPress={onPress}
     >
-      <Text style={styles.status}>{status}</Text>
-      <View style={styles.route}>
-        <Airport code={main.route.from} city={main.route.fromCity} />
-        <Text style={styles.arrow} accessibilityLabel="to">
-          →
-        </Text>
-        <Airport code={main.route.to} city={main.route.toCity} alignEnd />
-      </View>
-      <Text style={styles.details}>{details}</Text>
-
-      {second && (
-        <View style={styles.secondPlane}>
-          <Text style={styles.secondRoute}>
-            {second.route.from} → {second.route.to}
+      <Text style={styles.status}>{describeStage(card.stage)}</Text>
+      {card.route ? (
+        <View style={styles.route}>
+          <Airport code={card.route.from} city={card.route.fromCity} />
+          <Text style={styles.arrow} accessibilityLabel="to">
+            →
           </Text>
-          <Text style={styles.details}>
-            {compassDirection(second.bearingDeg)} · {formatDistance(second.distanceNm)} · ~
-            {formatCountdown(second.secondsLeft)}
-          </Text>
+          <Airport code={card.route.to} city={card.route.toCity} alignEnd />
         </View>
+      ) : (
+        <Text style={styles.unknownRoute}>{cardTitle(card)}</Text>
       )}
-
-      <Text style={styles.hint}>Tap to see where to look</Text>
+      <Text style={styles.details}>{cardDetails(card)}</Text>
+      {position && <Text style={styles.details}>{position}</Text>}
+      {card.stage !== 'passed' && <Text style={styles.hint}>Tap to see where to look</Text>}
     </Pressable>
   );
 }
@@ -78,17 +73,7 @@ const styles = StyleSheet.create({
   code: { color: colors.text, fontSize: 48, fontWeight: '700' },
   city: { color: colors.textSecondary, fontSize: 15, fontWeight: '500' },
   arrow: { color: colors.textTertiary, fontSize: 24 },
+  unknownRoute: { color: colors.text, fontSize: 28, fontWeight: '700' },
   details: { color: colors.textSecondary, fontSize: 13, fontWeight: '500' },
-  secondPlane: {
-    alignSelf: 'stretch',
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  secondRoute: { color: colors.text, fontSize: 17, fontWeight: '600' },
   hint: { color: colors.accent, fontSize: 15, fontWeight: '600' },
 });

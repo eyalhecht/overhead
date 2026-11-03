@@ -1,5 +1,6 @@
-import { hasRoute, type GeoPoint, type NearbyPlane, type RoutedPlane } from '@overhead/shared';
+import type { ActivityProps, GeoPoint, NearbyPlane } from '@overhead/shared';
 import { createContext, useContext, useMemo, type PropsWithChildren } from 'react';
+import { useCard } from './useCard';
 import { useHeading } from './useHeading';
 import { useLocation, type LocationPermission } from './useLocation';
 import { useNearbyPlanes } from './useNearbyPlanes';
@@ -10,7 +11,8 @@ interface Sky {
   requestAccess: () => Promise<boolean>;
   heading: number;
   planes: NearbyPlane[];
-  routedPlanes: RoutedPlane[];
+  card: ActivityProps | null;
+  cardPlane?: NearbyPlane;
 }
 
 const SkyContext = createContext<Sky | null>(null);
@@ -19,6 +21,7 @@ export function SkyProvider({ children }: PropsWithChildren) {
   const { location, permission, requestAccess } = useLocation();
   const heading = useHeading(permission === 'granted');
   const planes = useNearbyPlanes(location);
+  const card = useCard();
 
   const sky = useMemo<Sky>(
     () => ({
@@ -27,9 +30,10 @@ export function SkyProvider({ children }: PropsWithChildren) {
       requestAccess,
       heading,
       planes,
-      routedPlanes: planes.filter(hasRoute),
+      card,
+      cardPlane: planes.find((plane) => plane.flight === card?.flight),
     }),
-    [location, permission, requestAccess, heading, planes],
+    [location, permission, requestAccess, heading, planes, card],
   );
 
   return <SkyContext.Provider value={sky}>{children}</SkyContext.Provider>;
