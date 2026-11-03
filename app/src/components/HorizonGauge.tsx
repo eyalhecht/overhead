@@ -1,5 +1,5 @@
 import Svg, { Circle, Line, Path } from 'react-native-svg';
-import { useColors } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 
 const SIZE = 84;
 const ORIGIN = { x: 8, y: 76 };
@@ -11,7 +11,6 @@ interface HorizonGaugeProps {
 }
 
 export function HorizonGauge({ elevationDeg, color }: HorizonGaugeProps) {
-  const colors = useColors();
   const radians = (elevationDeg * Math.PI) / 180;
   const tip = { x: ORIGIN.x + RADIUS * Math.cos(radians), y: ORIGIN.y - RADIUS * Math.sin(radians) };
 

@@ -1,19 +1,16 @@
 import { Link, Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { FlightCard } from '@/components/FlightCard';
-import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
 import { SkyMap } from '@/components/SkyMap';
 import { useSky } from '@/hooks/useSky';
-import { themedStyles, useColors } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import { isOnboarded } from '@/services/onboarding';
 
 export default function HomeScreen() {
-  const styles = useStyles();
-  const colors = useColors();
   const [onboarded, setOnboarded] = useState<boolean>();
   const { permission, location, heading, planes, card, cardPlane } = useSky();
 
@@ -32,80 +29,44 @@ export default function HomeScreen() {
         </Text>
         <Link href="/settings" asChild>
           <Pressable accessibilityRole="button" accessibilityLabel="Settings" style={styles.settingsButton}>
-            <Icon name="settings" color={colors.text} />
+            <SettingsIcon />
           </Pressable>
         </Link>
       </View>
 
-      {permission === 'denied' && !card ? (
-        <Card style={styles.message}>
-          <View style={styles.messageIcon}>
-            <Icon name="pin" color={colors.accent} size={26} />
-          </View>
-          <Text style={styles.messageTitle}>Location is off</Text>
-          <Text style={styles.messageText}>So Overhead can’t find planes above you.</Text>
-          <Button label="Open Settings" onPress={() => void Linking.openSettings()} />
-        </Card>
-      ) : (
-        <Card style={styles.map}>
-          <SkyMap planes={planes} highlightedId={cardPlane?.id} heading={heading} />
-        </Card>
-      )}
+      <SkyMap planes={planes} highlightedId={cardPlane?.id} heading={heading} />
 
       {card ? (
-        <>
-          <FlightCard card={card} plane={cardPlane} onPress={() => router.push('/look-up')} />
-          {card.stage !== 'passed' && <Text style={styles.hint}>Tap to see where to look</Text>}
-        </>
+        <FlightCard card={card} plane={cardPlane} onPress={() => router.push('/look-up')} />
+      ) : permission === 'denied' ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>Location is off, so Overhead can’t find planes above you.</Text>
+          <Button label="Open Settings" variant="plain" onPress={() => void Linking.openSettings()} />
+        </View>
       ) : (
-        permission !== 'denied' && (
-          <Card style={styles.message}>
-            <Text style={styles.messageTitle}>
-              {location ? 'No planes above you right now' : 'Finding your location…'}
-            </Text>
-            {location && (
-              <Text style={styles.messageText}>
-                When one is about to pass, it shows up here and on your Lock Screen.
-              </Text>
-            )}
-          </Card>
-        )
+        <Text style={styles.emptyText}>
+          {location ? 'No planes above you right now.' : 'Finding your location…'}
+        </Text>
       )}
     </Screen>
   );
 }
 
-const useStyles = themedStyles((colors) =>
-  StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    title: { color: colors.text, fontSize: 34, fontWeight: '800', letterSpacing: -0.5 },
-    settingsButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: colors.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    map: { paddingHorizontal: 6, paddingVertical: 14 },
-    message: { alignItems: 'center', gap: 8, paddingVertical: 24 },
-    messageIcon: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: colors.accentSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 6,
-    },
-    messageTitle: { color: colors.text, fontSize: 22, fontWeight: '700', textAlign: 'center' },
-    messageText: {
-      color: colors.textSecondary,
-      fontSize: 15,
-      lineHeight: 21,
-      textAlign: 'center',
-      marginBottom: 6,
-    },
-    hint: { color: colors.accent, fontSize: 16, fontWeight: '600', textAlign: 'center' },
-  }),
-);
+function SettingsIcon() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.accent} strokeWidth={2}>
+      <Path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" strokeLinecap="round" />
+      <Circle cx={16} cy={6} r={2} />
+      <Circle cx={10} cy={12} r={2} />
+      <Circle cx={18} cy={18} r={2} />
+    </Svg>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { color: colors.text, fontSize: 34, fontWeight: '700' },
+  settingsButton: { minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' },
+  empty: { gap: 8 },
+  emptyText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
+});

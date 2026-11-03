@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import { compassDirection, formatDistance } from '@/lib/format';
 import { MAP, northLabelPosition, placePlane, PLANE_ICON, zoomFor } from '@/lib/skyMap';
-import { useColors } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 
 const PATH_HALF_LENGTH = 400;
 const LABELLED_RINGS = MAP.rings.slice(0, 2);
@@ -18,7 +18,6 @@ interface SkyMapProps {
 const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
 export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
-  const colors = useColors();
   const { stepKm, shown } = zoomFor(planes);
   const placed = shown.map((plane) => ({ plane, ...placePlane(plane, heading, stepKm) }));
   const north = northLabelPosition(heading);
@@ -35,15 +34,14 @@ export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
       style={styles.map}
       accessibilityLabel={label}
     >
-      {MAP.rings.map((ring) => (
+      {MAP.rings.map((ring, index) => (
         <Circle
           key={ring}
           cx={center.x}
           cy={center.y}
           r={ring * MAP.ringSpacingPx}
           fill="none"
-          stroke={colors.ring}
-          strokeWidth={1.5}
+          stroke={`rgba(255,255,255,${0.24 - index * 0.06})`}
         />
       ))}
 
@@ -57,14 +55,14 @@ export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
             y1={y - dy}
             x2={x + dx}
             y2={y + dy}
-            stroke={colors.routeTrack}
+            stroke="rgba(255,255,255,0.25)"
             strokeWidth={2}
             strokeDasharray="5 6"
           />
         );
       })}
 
-      <Path d="M150 100 L139 76 A26 26 0 0 1 161 76 Z" fill={colors.mapFan} />
+      <Path d="M150 100 L139 76 A26 26 0 0 1 161 76 Z" fill="rgba(255,255,255,0.16)" />
       {LABELLED_RINGS.map((ring) => (
         <SvgText
           key={ring}
@@ -96,7 +94,7 @@ export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
         >
           <Path
             d={PLANE_ICON.path}
-            fill={plane.id === highlightedId ? colors.accent : colors.surface}
+            fill={colors.background}
             stroke={plane.id === highlightedId ? colors.accent : colors.textSecondary}
             strokeWidth={2}
             strokeLinejoin="round"
