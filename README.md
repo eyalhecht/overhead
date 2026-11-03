@@ -2,7 +2,7 @@
 
 An iPhone app that tells you where the plane above you is coming from and going to, on your Lock Screen, for exactly as long as it is above you.
 
-When a plane flies low and close (below 6,000 ft, within ~2.8 km), a Live Activity appears with its route and a countdown, and disappears once the plane has passed. The app itself is a minimal map of the sky around you plus a "look up" pointer.
+When a plane flies low and close (below 10,000 ft, within ~2.8 km), a Live Activity appears with its route and a countdown, and disappears once the plane has passed. The app itself is a minimal map of the sky around you plus a "look up" pointer.
 
 ## How it works
 

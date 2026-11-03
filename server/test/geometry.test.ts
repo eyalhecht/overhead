@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { isOverhead, secondsUntilExit, type Aircraft } from '../src/flights/geometry.js';
+import { isOverhead, OVERHEAD_RADIUS_NM, secondsUntilExit, type Aircraft } from '../src/flights/geometry.js';
+
+const isr053Climb: { samples: { distanceNm: number; altitudeFt: number; groundSpeedKt: number }[] } =
+  JSON.parse(readFileSync(new URL('./fixtures/isr053-climb-over-ramat-gan.json', import.meta.url), 'utf8'));
 
 const aircraft = (overrides: Partial<Aircraft> = {}): Aircraft => ({
   id: 'abc123',
@@ -15,6 +19,32 @@ const aircraft = (overrides: Partial<Aircraft> = {}): Aircraft => ({
 describe('isOverhead', () => {
   it('accepts a low plane inside the circle', () => {
     expect(isOverhead(aircraft({ distanceNm: 1.2, altitudeFt: 5500 }))).toBe(true);
+  });
+
+  it('keeps a departure that climbs past 6,000 ft right above you', () => {
+    const isr053AboveRamatGan = aircraft({
+      flight: 'ISR053',
+      distanceNm: 0.15,
+      altitudeFt: 6075,
+      groundSpeedKt: 297,
+    });
+    const isr053TenSecondsLater = aircraft({
+      flight: 'ISR053',
+      distanceNm: 1.02,
+      altitudeFt: 6875,
+      groundSpeedKt: 296,
+    });
+
+    expect(isOverhead(isr053AboveRamatGan)).toBe(true);
+    expect(isOverhead(isr053TenSecondsLater)).toBe(true);
+  });
+
+  it('counts a real departure for its whole pass inside the circle, not just until it climbs', () => {
+    const { samples } = isr053Climb;
+    const insideCircle = samples.filter(({ distanceNm }) => distanceNm <= OVERHEAD_RADIUS_NM);
+
+    expect(insideCircle.every((sample) => isOverhead(aircraft(sample)))).toBe(true);
+    expect(insideCircle.length).toBeGreaterThan(10);
   });
 
   it('rejects a plane that is too high', () => {
