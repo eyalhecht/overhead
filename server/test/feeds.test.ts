@@ -11,12 +11,37 @@ const capturedOverBenGurion: unknown = JSON.parse(
   readFileSync(new URL('./fixtures/adsbfi-ben-gurion.json', import.meta.url), 'utf8'),
 );
 
+const NM_IN_KM = 1.852;
+
+function bearingAndDistance(from: { lat: number; lon: number }, to: { lat: number; lon: number }) {
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const east = radians(to.lon - from.lon) * Math.cos(radians((from.lat + to.lat) / 2));
+  const north = radians(to.lat - from.lat);
+  return {
+    bearingDeg: ((Math.atan2(east, north) * 180) / Math.PI + 360) % 360,
+    distanceNm: (Math.hypot(east, north) * 6371) / NM_IN_KM,
+  };
+}
+
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 describe('a real adsb.fi response captured over Ben Gurion', () => {
   it('keeps the airborne aircraft and drops the ones on the ground', () => {
     const flights = parseReadsbResponse(capturedOverBenGurion).map(({ flight }) => flight);
     expect(flights.sort()).toEqual(['4XHSC', 'RJA264']);
+  });
+
+  it('reads each plane direction from you and distance in nautical miles, matching its real coordinates', () => {
+    const { ac } = capturedOverBenGurion as { ac: { flight?: string; lat: number; lon: number }[] };
+    const parsed = parseReadsbResponse(capturedOverBenGurion);
+
+    for (const plane of parsed) {
+      const raw = ac.find(({ flight }) => flight?.trim() === plane.flight);
+      const expected = bearingAndDistance(BEN_GURION, raw ?? BEN_GURION);
+      expect(plane.bearingDeg).toBeCloseTo(expected.bearingDeg, 0);
+      expect(plane.distanceNm).toBeCloseTo(expected.distanceNm, 1);
+    }
+    expect(parsed.length).toBeGreaterThan(0);
   });
 
   it('reads altitude, speed and position in the units the geometry expects', () => {
