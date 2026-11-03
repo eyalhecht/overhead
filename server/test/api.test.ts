@@ -1,6 +1,6 @@
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { createWatcher } from '../src/activity/watcher.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createWatcher, type Watcher } from '../src/activity/watcher.js';
 import { createApp } from '../src/api/app.js';
 import { createUserStore, type UserStore } from '../src/users.js';
 import { FakePush, FakeSky, nearbyPlane, registerRequest } from './fakes.js';
@@ -10,12 +10,14 @@ const APP_KEY = 'test-key';
 describe('API', () => {
   let sky: FakeSky;
   let users: UserStore;
+  let watcher: Watcher;
   let app: ReturnType<typeof createApp>;
 
   beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
     sky = new FakeSky();
     users = createUserStore();
-    const watcher = createWatcher({ users, sky, push: new FakePush() });
+    watcher = createWatcher({ users, sky, push: new FakePush() });
     app = createApp({ appKey: APP_KEY, users, sky, watcher });
   });
 
@@ -119,5 +121,46 @@ describe('API', () => {
     await authorized(request(app).post('/register'))
       .send(registerRequest({ startToken: '../../3/device/other' }))
       .expect(400);
+  });
+
+  describe('the card a phone is showing', () => {
+    const cardOf = (deviceId: string) => authorized(request(app).get(`/card?deviceId=${deviceId}`));
+
+    it('matches the Live Activity, so the app can show the same plane', async () => {
+      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
+      sky.planes = [nearbyPlane('ISR053', { airline: 'Israir', stage: 'approaching' })];
+      await watcher.tick();
+
+      const response = await cardOf('phone-1').expect(200);
+
+      expect(response.body).toMatchObject({ flight: 'ISR053', airline: 'Israir', stage: 'approaching' });
+    });
+
+    it('still shows the plane as Passed while the card says so', async () => {
+      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
+      sky.planes = [nearbyPlane('ISR053')];
+      await watcher.tick();
+      sky.planes = [];
+      await watcher.tick();
+
+      const response = await cardOf('phone-1').expect(200);
+
+      expect(response.body).toMatchObject({ flight: 'ISR053', stage: 'passed' });
+    });
+
+    it('is empty when the phone shows no card', async () => {
+      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
+      const response = await cardOf('phone-1').expect(200);
+      expect(response.body).toBeNull();
+    });
+
+    it('is empty for a phone the server does not know yet', async () => {
+      const response = await cardOf('never-registered').expect(200);
+      expect(response.body).toBeNull();
+    });
+
+    it('needs a device id', async () => {
+      await authorized(request(app).get('/card')).expect(400);
+    });
   });
 });

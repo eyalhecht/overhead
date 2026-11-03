@@ -12,7 +12,7 @@ import { isOnboarded } from '@/services/onboarding';
 
 export default function HomeScreen() {
   const [onboarded, setOnboarded] = useState<boolean>();
-  const { permission, location, heading, planes, routedPlanes } = useSky();
+  const { permission, location, heading, planes, card, cardPlane } = useSky();
 
   useEffect(() => {
     void isOnboarded().then(setOnboarded);
@@ -20,8 +20,6 @@ export default function HomeScreen() {
 
   if (onboarded === undefined) return <Screen />;
   if (!onboarded) return <Redirect href="/welcome" />;
-
-  const [main, second] = routedPlanes;
 
   return (
     <Screen scrollable>
@@ -36,10 +34,10 @@ export default function HomeScreen() {
         </Link>
       </View>
 
-      <SkyMap planes={planes} highlightedId={main?.id} heading={heading} />
+      <SkyMap planes={planes} highlightedId={cardPlane?.id} heading={heading} />
 
-      {main ? (
-        <FlightCard main={main} second={second} onPress={() => router.push('/look-up')} />
+      {card ? (
+        <FlightCard card={card} plane={cardPlane} onPress={() => router.push('/look-up')} />
       ) : permission === 'denied' ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>Location is off, so Overhead can’t find planes above you.</Text>

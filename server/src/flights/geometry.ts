@@ -1,7 +1,10 @@
+import type { PassStage } from '@overhead/shared';
+
 export const OVERHEAD_RADIUS_NM = 1.5;
-export const OVERHEAD_MAX_ALTITUDE_FT = 10000;
-const HOVER_SPEED_KT = 20;
-const HOVER_SECONDS_LEFT = 60;
+export const OVERHEAD_MAX_ALTITUDE_FT = 10_000;
+export const APPROACH_LEAD_SECONDS = 45;
+export const INBOUND_LEAD_SECONDS = 120;
+const HOVER_SPEED_KT = 40;
 const SECONDS_PER_HOUR = 3600;
 
 export interface Aircraft {
@@ -15,23 +18,30 @@ export interface Aircraft {
   bearingDeg: number;
 }
 
-export function isOverhead(aircraft: Aircraft): boolean {
-  return aircraft.altitudeFt <= OVERHEAD_MAX_ALTITUDE_FT && aircraft.distanceNm <= OVERHEAD_RADIUS_NM;
+export interface ClosestApproach {
+  distanceNm: number;
+  inSeconds: number;
 }
 
-export function secondsUntilExit(aircraft: Aircraft, radiusNm = OVERHEAD_RADIUS_NM): number {
-  if (aircraft.groundSpeedKt < HOVER_SPEED_KT) return HOVER_SECONDS_LEFT;
+export function passStage(aircraft: Aircraft): PassStage | null {
+  if (aircraft.altitudeFt > OVERHEAD_MAX_ALTITUDE_FT || aircraft.groundSpeedKt < HOVER_SPEED_KT) return null;
+  if (aircraft.distanceNm <= OVERHEAD_RADIUS_NM) return 'overhead';
 
+  const { distanceNm, inSeconds } = closestApproach(aircraft);
+  if (distanceNm > OVERHEAD_RADIUS_NM) return null;
+  if (inSeconds <= APPROACH_LEAD_SECONDS) return 'approaching';
+  return inSeconds <= INBOUND_LEAD_SECONDS ? 'inbound' : null;
+}
+
+export function closestApproach(aircraft: Aircraft): ClosestApproach {
   const position = toVector(aircraft.distanceNm, aircraft.bearingDeg);
   const velocity = toVector(aircraft.groundSpeedKt / SECONDS_PER_HOUR, aircraft.trackDeg);
 
-  const a = dot(velocity, velocity);
-  const b = 2 * dot(position, velocity);
-  const c = dot(position, position) - radiusNm * radiusNm;
-  const discriminant = Math.max(0, b * b - 4 * a * c);
-  const exitTime = (-b + Math.sqrt(discriminant)) / (2 * a);
+  const speedSquared = dot(velocity, velocity);
+  const inSeconds = speedSquared === 0 ? 0 : Math.max(0, -dot(position, velocity) / speedSquared);
+  const closest = { x: position.x + velocity.x * inSeconds, y: position.y + velocity.y * inSeconds };
 
-  return Math.max(0, Math.round(exitTime));
+  return { distanceNm: round(Math.hypot(closest.x, closest.y), 2), inSeconds: Math.round(inSeconds) };
 }
 
 interface Vector {
@@ -46,4 +56,8 @@ function toVector(length: number, bearingDeg: number): Vector {
 
 function dot(u: Vector, v: Vector): number {
   return u.x * v.x + u.y * v.y;
+}
+
+function round(value: number, decimals: number): number {
+  return Number(value.toFixed(decimals));
 }

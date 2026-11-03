@@ -1,8 +1,8 @@
-import type { ActivityProps, GeoPoint, NearbyPlane, RegisterRequest, RoutedPlane } from '@overhead/shared';
+import type { ActivityProps, GeoPoint, NearbyPlane, RegisterRequest } from '@overhead/shared';
 import type { Sky } from '../src/flights/sky.js';
 import type { LiveActivityEvent, PushClient, PushResult } from '../src/push/apns.js';
 
-export const routedPlane = (flight: string, overrides: Partial<RoutedPlane> = {}): RoutedPlane => ({
+export const nearbyPlane = (flight: string, overrides: Partial<NearbyPlane> = {}): NearbyPlane => ({
   id: flight.toLowerCase(),
   flight,
   aircraft: 'A320neo',
@@ -10,13 +10,8 @@ export const routedPlane = (flight: string, overrides: Partial<RoutedPlane> = {}
   trackDeg: 90,
   distanceNm: 0.5,
   bearingDeg: 0,
-  secondsLeft: 60,
+  stage: 'overhead',
   route: { from: 'LHR', fromCity: 'London', to: 'BER', toCity: 'Berlin' },
-  ...overrides,
-});
-
-export const nearbyPlane = (flight: string, overrides: Partial<NearbyPlane> = {}): NearbyPlane => ({
-  ...routedPlane(flight),
   ...overrides,
 });
 

@@ -6,10 +6,11 @@ import Svg, { Circle, G, Line, Path } from 'react-native-svg';
 import { Screen } from '@/components/Screen';
 import { useSky } from '@/hooks/useSky';
 import {
+  cardDetails,
+  cardTitle,
   describeDirection,
   elevationAngle,
   formatAltitude,
-  formatCountdown,
   formatDistance,
   relativeBearing,
 } from '@/lib/format';
@@ -19,8 +20,7 @@ const ALIGNED_WITHIN_DEG = 10;
 const ARROW_PATH = 'M130 32 L162 112 L138 104 L138 196 L122 196 L122 104 L98 112 Z';
 
 export default function LookUpScreen() {
-  const { routedPlanes, heading } = useSky();
-  const plane = routedPlanes[0];
+  const { card, cardPlane: plane, heading } = useSky();
   const relative = plane ? relativeBearing(plane.bearingDeg, heading) : 0;
   const aligned = plane !== undefined && Math.abs(relative) < ALIGNED_WITHIN_DEG;
   useHapticOnAlign(aligned);
@@ -31,7 +31,7 @@ export default function LookUpScreen() {
         <Text style={styles.doneLabel}>Done</Text>
       </Pressable>
 
-      {plane ? (
+      {card && plane ? (
         <>
           <Text style={styles.eyebrow}>LOOK UP</Text>
           <Text style={styles.title}>
@@ -60,15 +60,12 @@ export default function LookUpScreen() {
           </Svg>
           <View style={styles.spacer} />
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {plane.route.from} → {plane.route.to}
-            </Text>
+            <Text style={styles.cardTitle}>{cardTitle(card)}</Text>
             <Text style={styles.cardText}>
               {[
-                plane.flight,
+                cardDetails(card),
                 `${formatDistance(plane.distanceNm)} away`,
                 formatAltitude(plane.altitudeFt),
-                `~${formatCountdown(plane.secondsLeft)} left`,
               ].join(' · ')}
             </Text>
           </View>

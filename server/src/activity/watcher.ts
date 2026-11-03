@@ -1,16 +1,11 @@
-import {
-  hasRoute,
-  type ActivityProps,
-  type GeoPoint,
-  type NearbyPlane,
-  type RoutedPlane,
-} from '@overhead/shared';
+import type { ActivityProps, GeoPoint, NearbyPlane } from '@overhead/shared';
 import type { Sky } from '../flights/sky.js';
 import type { LiveActivityEvent, PushClient } from '../push/apns.js';
 import { isQuietTime, type User, type UserStore } from '../users.js';
 import { acknowledgeActivityToken, nextStep, type Action } from './policy.js';
 
 const TICK_INTERVAL_MS = 5000;
+const EMPTY_CARD: ActivityProps = { flight: '', route: null, stage: 'passed' };
 
 export interface WatcherDependencies {
   users: UserStore;
@@ -48,9 +43,7 @@ export function createWatcher({
   }
 
   async function watch(user: User): Promise<void> {
-    const planes = isQuietTime(user, now())
-      ? []
-      : await routedPlanesAbove(user, demoLocation ?? user.location);
+    const planes = isQuietTime(user, now()) ? [] : await planesAbove(user, demoLocation ?? user.location);
     const previous = user.activity;
     const { action, state } = nextStep(previous, {
       planes,
@@ -70,17 +63,15 @@ export function createWatcher({
     if (!user.startToken) return false;
     const result = await push.send(user.startToken, 'start', props);
     if (result === 'token-invalid') user.startToken = undefined;
-    if (result === 'delivered')
-      console.log(`${label(user)} card started: ${props.flight} ${props.from} → ${props.to}`);
+    if (result === 'delivered') console.log(`${label(user)} card started: ${props.flight} ${props.stage}`);
     return result === 'delivered';
   }
 
-  async function routedPlanesAbove(user: User, point: GeoPoint): Promise<RoutedPlane[]> {
-    const planes = await sky.planesAbove(point).catch((error: Error): NearbyPlane[] => {
+  function planesAbove(user: User, point: GeoPoint): Promise<NearbyPlane[]> {
+    return sky.planesAbove(point).catch((error: Error): NearbyPlane[] => {
       console.warn(`${label(user)} cannot see the sky: ${error.message}`);
       return [];
     });
-    return planes.filter(hasRoute);
   }
 
   async function perform(user: User, action: Exclude<Action, { type: 'start' }>): Promise<void> {
@@ -119,7 +110,7 @@ export function createWatcher({
       user.activity = acknowledgeActivityToken(user.activity);
       return;
     }
-    await sendToActivities(user, 'end', user.activity.lastProps ?? emptyCard(now()), unseen);
+    await sendToActivities(user, 'end', user.activity.lastProps ?? EMPTY_CARD, unseen);
   }
 
   function schedule(): void {
@@ -145,8 +136,4 @@ export function createWatcher({
 
 function label(user: User): string {
   return `[${user.deviceId.slice(0, 8)}]`;
-}
-
-function emptyCard(now: number): ActivityProps {
-  return { from: '', fromCity: '', to: '', toCity: '', flight: '', altitudeFt: 0, endsAt: now, more: 0 };
 }

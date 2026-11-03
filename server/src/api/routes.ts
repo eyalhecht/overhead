@@ -1,4 +1,4 @@
-import { PlanesQuerySchema, RegisterRequestSchema, type GeoPoint } from '@overhead/shared';
+import { CardQuerySchema, PlanesQuerySchema, RegisterRequestSchema, type GeoPoint } from '@overhead/shared';
 import { Router } from 'express';
 import type { Watcher } from '../activity/watcher.js';
 import type { Sky } from '../flights/sky.js';
@@ -24,6 +24,11 @@ export function createRouter({ users, sky, watcher, demoLocation }: RouterDepend
   router.get('/planes', async (req, res) => {
     const { lat, lon } = PlanesQuerySchema.parse(req.query);
     res.json(await sky.planesAbove(demoLocation ?? { lat, lon }));
+  });
+
+  router.get('/card', (req, res) => {
+    const { deviceId } = CardQuerySchema.parse(req.query);
+    res.json(users.find(deviceId)?.activity.showing?.props ?? null);
   });
 
   return router;

@@ -16,6 +16,7 @@ export interface User {
 
 export interface UserStore {
   upsert(request: RegisterRequest): User;
+  find(deviceId: string): User | undefined;
   all(): User[];
 }
 
@@ -50,6 +51,10 @@ export function createUserStore(maxUsers = 100): UserStore {
           };
       users.set(user.deviceId, user);
       return user;
+    },
+
+    find(deviceId) {
+      return users.get(deviceId);
     },
 
     all() {

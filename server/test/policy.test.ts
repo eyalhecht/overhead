@@ -1,26 +1,28 @@
-import type { RoutedPlane } from '@overhead/shared';
+import type { NearbyPlane, PassStage } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_RULES,
   acknowledgeActivityToken,
   initialActivityState,
   nextStep,
+  type Action,
   type ActivityState,
 } from '../src/activity/policy.js';
-import { routedPlane } from './fakes.js';
+import { nearbyPlane } from './fakes.js';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
-const plane = (flight: string, secondsLeft = 60) => routedPlane(flight, { secondsLeft });
+const plane = (flight: string, stage: PassStage = 'overhead') => nearbyPlane(flight, { stage });
 
 class Simulation {
   state: ActivityState = initialActivityState();
   now = 0;
   canStart = true;
   hasToken = false;
+  lastAction: Action = { type: 'none' };
 
-  step(planes: RoutedPlane[], afterMs = 5 * SECOND) {
+  step(planes: NearbyPlane[], afterMs = 5 * SECOND) {
     this.now += afterMs;
     const { action, state } = nextStep(this.state, {
       planes,
@@ -29,7 +31,12 @@ class Simulation {
       hasActivityToken: this.hasToken,
     });
     this.state = state;
+    this.lastAction = action;
     return action.type;
+  }
+
+  shownStage() {
+    return 'props' in this.lastAction ? this.lastAction.props.stage : undefined;
   }
 
   confirmCard() {
@@ -43,41 +50,116 @@ describe('nextStep', () => {
     expect(new Simulation().step([])).toBe('none');
   });
 
-  it('starts a card when a plane arrives, then refreshes it every 15 seconds', () => {
+  it('starts a card as Approaching, then updates it when the plane is above you', () => {
     const sim = new Simulation();
-    expect(sim.step([plane('BAW1')])).toBe('start');
+    expect(sim.step([plane('BAW1', 'approaching')])).toBe('start');
+    expect(sim.shownStage()).toBe('approaching');
     sim.confirmCard();
-    expect(sim.step([plane('BAW1')], 10 * SECOND)).toBe('none');
+
+    expect(sim.step([plane('BAW1', 'overhead')])).toBe('update');
+    expect(sim.shownStage()).toBe('overhead');
+  });
+
+  it('sends nothing while the card is unchanged, except a quiet refresh every 30 seconds', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.confirmCard();
+
+    expect(sim.step([plane('BAW1')], 25 * SECOND)).toBe('none');
     expect(sim.step([plane('BAW1')], 6 * SECOND)).toBe('update');
   });
 
-  it('updates at once when a second plane joins or the main plane changes', () => {
+  it('shows Passed for 20 seconds after the plane has gone, then ends the card', () => {
     const sim = new Simulation();
     sim.step([plane('BAW1')]);
     sim.confirmCard();
-    expect(sim.step([plane('BAW1'), plane('DLH2')])).toBe('update');
-    expect(sim.step([plane('DLH2')])).toBe('update');
+
+    expect(sim.step([])).toBe('update');
+    expect(sim.shownStage()).toBe('passed');
+    expect(sim.step([], ACTIVITY_RULES.passedLingerMs - 5 * SECOND)).toBe('none');
+    expect(sim.step([], 5 * SECOND)).toBe('end');
   });
 
-  it('keeps the card for the grace period after the sky empties, then ends it', () => {
+  it('ends quietly, without Passed, when an approaching plane turns away', () => {
     const sim = new Simulation();
-    sim.step([plane('BAW1')]);
+    sim.step([plane('BAW1', 'approaching')]);
     sim.confirmCard();
+
     expect(sim.step([])).toBe('none');
-    expect(sim.step([], ACTIVITY_RULES.gracePeriodMs - 10 * SECOND)).toBe('none');
-    expect(sim.step([], 10 * SECOND)).toBe('end');
+    expect(sim.step([], ACTIVITY_RULES.passedLingerMs)).toBe('end');
+    expect(sim.shownStage()).toBe('approaching');
   });
 
-  it('puts a stream of planes on one card (busy sky)', () => {
+  it('keeps the card through a few seconds of missing data', () => {
     const sim = new Simulation();
-    const actions = ['BAW1', 'AFR2', 'KLM3', 'SWR4'].flatMap((flight) => {
-      const arrived = sim.step([plane(flight)]);
-      sim.confirmCard();
-      const gap = sim.step([], 60 * SECOND);
-      return [arrived, gap];
+    sim.step([plane('BAW1')]);
+    sim.confirmCard();
+
+    sim.step([]);
+    expect(sim.step([plane('BAW1')])).toBe('update');
+    expect(sim.shownStage()).toBe('overhead');
+    expect(sim.step([], ACTIVITY_RULES.passedLingerMs - SECOND)).toBe('update');
+  });
+
+  it('keeps a Passed card open while the next plane is on its way, then switches to it', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.confirmCard();
+    sim.step([plane('DLH2', 'inbound')]);
+
+    expect(sim.shownStage()).toBe('passed');
+    expect(sim.step([plane('DLH2', 'inbound')], ACTIVITY_RULES.passedLingerMs + 10 * SECOND)).toBe('none');
+    expect(sim.step([plane('DLH2', 'approaching')])).toBe('update');
+    expect(sim.lastAction).toMatchObject({ props: { flight: 'DLH2', stage: 'approaching' } });
+  });
+
+  it('never starts a card for a plane that is only inbound', () => {
+    expect(new Simulation().step([plane('DLH2', 'inbound')])).toBe('none');
+  });
+
+  it('switches the same card to the next plane', () => {
+    const sim = new Simulation();
+    expect(sim.step([plane('BAW1')])).toBe('start');
+    sim.confirmCard();
+    sim.step([]);
+
+    expect(sim.step([plane('DLH2', 'approaching')])).toBe('update');
+    expect(sim.lastAction).toMatchObject({ props: { flight: 'DLH2', stage: 'approaching' } });
+  });
+
+  it('puts the plane above you on the card before one still approaching', () => {
+    const { action } = nextStep(initialActivityState(), {
+      planes: [plane('BAW1', 'overhead'), plane('DLH2', 'approaching')],
+      now: MINUTE,
+      canStart: true,
+      hasActivityToken: false,
     });
-    expect(actions.filter((type) => type === 'start')).toHaveLength(1);
-    expect(actions).not.toContain('end');
+    expect(action).toMatchObject({ type: 'start', props: { flight: 'BAW1' } });
+  });
+
+  it('carries the route, airline and aircraft on the card', () => {
+    const { action } = nextStep(initialActivityState(), {
+      planes: [nearbyPlane('ISR053', { airline: 'Israir', aircraft: 'A320' })],
+      now: MINUTE,
+      canStart: true,
+      hasActivityToken: false,
+    });
+    expect(action).toMatchObject({
+      type: 'start',
+      props: {
+        flight: 'ISR053',
+        airline: 'Israir',
+        aircraft: 'A320',
+        route: { from: 'LHR' },
+        stage: 'overhead',
+      },
+    });
+  });
+
+  it('shows a plane whose route is unknown', () => {
+    const sim = new Simulation();
+    expect(sim.step([nearbyPlane('4XCDO', { route: null })])).toBe('start');
+    expect(sim.lastAction).toMatchObject({ props: { flight: '4XCDO', route: null } });
   });
 
   it('opens at most 5 new cards per hour', () => {
@@ -86,7 +168,7 @@ describe('nextStep', () => {
       const action = sim.step([plane(`FLT${index}`)]);
       sim.confirmCard();
       sim.step([]);
-      sim.step([], ACTIVITY_RULES.gracePeriodMs);
+      sim.step([], ACTIVITY_RULES.passedLingerMs);
       return action;
     });
     expect(starts).toEqual(['start', 'start', 'start', 'start', 'start', 'none']);
@@ -106,11 +188,11 @@ describe('nextStep', () => {
     expect(sim.step([plane('BAW1')])).toBe('none');
   });
 
-  it('ends a card when the same aircraft hovers too long, and does not reshow it', () => {
+  it('drops an aircraft that keeps circling over you, and does not show it again', () => {
     const sim = new Simulation();
     sim.step([plane('HELI1')]);
     sim.confirmCard();
-    expect(sim.step([plane('HELI1')], ACTIVITY_RULES.hoverLimitMs + SECOND)).toBe('end');
+    expect(sim.step([plane('HELI1')], ACTIVITY_RULES.circlingLimitMs + SECOND)).toBe('end');
     expect(sim.step([plane('HELI1')])).toBe('none');
     expect(sim.step([plane('BAW2')])).toBe('start');
   });
@@ -123,15 +205,5 @@ describe('nextStep', () => {
     expect(sim.step([plane('KLM3')], 9 * MINUTE)).toBe('update');
     expect(sim.step([plane('BAW9')], 5 * MINUTE)).toBe('end');
     expect(sim.step([plane('BAW9')])).toBe('start');
-  });
-
-  it('counts down to when the plane leaves', () => {
-    const { action } = nextStep(initialActivityState(), {
-      planes: [plane('BAW1', 45)],
-      now: 1_000_000,
-      canStart: true,
-      hasActivityToken: false,
-    });
-    expect(action).toMatchObject({ type: 'start', props: { flight: 'BAW1', endsAt: 1_045_000 } });
   });
 });

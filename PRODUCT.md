@@ -1,6 +1,6 @@
 # Overhead - product definition
 
-Agreed on 3 November 2026. This is how Overhead should behave. Where the code still does something else, see [Not built yet](#not-built-yet).
+Agreed on 3 November 2026. This is how Overhead behaves; the limits of the current approach are under [Known limits](#known-limits).
 
 ## The idea
 
@@ -59,16 +59,7 @@ There are no cards between **22:00 and 07:00**. This is on by default and can be
 - **Collecting:** every plane that passes earns coins (or points, name to be decided), and enough of them unlock badges.
 - **New card designs:** the Wolt-style concepts are on the prototype canvas.
 
-## Not built yet
+## Known limits
 
-These are where the code still differs from this definition:
-
-1. **Approaching stage:** cards start only once a plane is already inside the 2.8 km circle. This needs a wider watch area (about 9 km) and a path prediction.
-2. **Passed for 20 s:** the code waits up to 90 seconds before ending a card.
-3. **Status instead of countdown:** the card still shows a countdown.
-4. **Card content:** the card still shows a second-plane line, a "+N" count and the RARE label.
-5. **Planes without a route:** these are skipped today.
-6. **Hovering aircraft:** these are shown for 10 minutes before being hidden.
-7. **App matches card:** the app shows only what is overhead right now, so it can disagree with a card that is still up.
-8. **Tap target:** not yet checked that tapping the card opens the compass.
-9. **10,000 ft ceiling:** merged into master, not deployed yet.
+- The prediction assumes the plane flies straight. A departure still turning onto its course is recognized later, about 30 seconds before it is closest instead of 45 (seen with ISR053 over Ramat Gan).
+- Planes predicted to pass within the next two minutes are watched too. They never appear on the card, but they keep a Passed card open so a busy sky stays on one card.

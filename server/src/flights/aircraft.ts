@@ -72,30 +72,7 @@ const AIRCRAFT_NAMES: Record<string, string> = {
   C5M: 'C-5 Galaxy',
 };
 
-const RARE_TYPES = new Set([
-  'A388',
-  'B741',
-  'B742',
-  'B743',
-  'B744',
-  'B748',
-  'A342',
-  'A343',
-  'A345',
-  'A346',
-  'A124',
-  'A225',
-  'C17',
-  'A400',
-  'C5M',
-]);
-
 export function aircraftName(typeCode: string | undefined): string | undefined {
   if (!typeCode) return undefined;
   return AIRCRAFT_NAMES[typeCode] ?? typeCode;
-}
-
-export function rareAircraftName(typeCode: string | undefined): string | undefined {
-  if (!typeCode || !RARE_TYPES.has(typeCode)) return undefined;
-  return aircraftName(typeCode);
 }

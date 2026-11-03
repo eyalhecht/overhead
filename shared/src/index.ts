@@ -12,43 +12,39 @@ export interface Route {
   toCity: string;
 }
 
-export interface FlightOnCard extends Route {
-  flight: string;
-  endsAt: number;
-}
+export type PassStage = 'inbound' | 'approaching' | 'overhead';
 
-export interface ActivityProps extends FlightOnCard {
-  aircraft?: string;
-  rare?: string;
-  altitudeFt: number;
-  second?: FlightOnCard;
-  more: number;
-}
+export type CardStage = 'approaching' | 'overhead' | 'passed';
 
 export interface NearbyPlane {
   id: string;
   flight: string;
+  airline?: string;
   aircraft?: string;
-  rare?: string;
   altitudeFt: number;
   trackDeg: number;
   distanceNm: number;
   bearingDeg: number;
-  secondsLeft: number;
+  stage: PassStage;
   route: Route | null;
 }
 
-export type RoutedPlane = NearbyPlane & { route: Route };
-
-export const hasRoute = (plane: NearbyPlane): plane is RoutedPlane => plane.route !== null;
+export interface ActivityProps {
+  flight: string;
+  airline?: string;
+  aircraft?: string;
+  route: Route | null;
+  stage: CardStage;
+}
 
 const latitude = z.number().min(-90).max(90);
 const longitude = z.number().min(-180).max(180);
 const minuteOfDay = z.number().int().min(0).max(1439);
 const pushToken = z.string().regex(/^[\w+/=-]{1,300}$/);
+const deviceId = z.string().min(1).max(64);
 
 export const RegisterRequestSchema = z.object({
-  deviceId: z.string().min(1).max(64),
+  deviceId,
   lat: latitude,
   lon: longitude,
   startToken: pushToken.optional(),
@@ -65,3 +61,5 @@ export const PlanesQuerySchema = z.object({
 });
 
 export type PlanesQuery = z.infer<typeof PlanesQuerySchema>;
+
+export const CardQuerySchema = z.object({ deviceId });

@@ -1,7 +1,14 @@
+import type { ActivityProps, CardStage } from '@overhead/shared';
+
 const COMPASS_POINTS = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
 export const KM_PER_NM = 1.852;
 const METERS_PER_FOOT = 0.3048;
 const METERS_PER_NM = 1852;
+const STAGE_WORDS: Record<CardStage, string> = {
+  approaching: 'Approaching',
+  overhead: 'Above you now',
+  passed: 'Passed',
+};
 
 export function compassDirection(bearingDeg: number): string {
   return COMPASS_POINTS[Math.round(bearingDeg / 45) % COMPASS_POINTS.length] ?? 'North';
@@ -15,10 +22,16 @@ export function formatAltitude(altitudeFt: number): string {
   return `${altitudeFt.toLocaleString()} ft`;
 }
 
-export function formatCountdown(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = String(totalSeconds % 60).padStart(2, '0');
-  return `${minutes}:${seconds}`;
+export function describeStage(stage: CardStage): string {
+  return STAGE_WORDS[stage];
+}
+
+export function cardTitle({ route }: ActivityProps): string {
+  return route ? `${route.fromCity} → ${route.toCity}` : 'Route unknown';
+}
+
+export function cardDetails({ airline, aircraft, flight }: ActivityProps): string {
+  return [airline ?? flight, aircraft].filter(Boolean).join(' · ');
 }
 
 export function relativeBearing(bearingDeg: number, headingDeg: number): number {

@@ -93,24 +93,30 @@ describe('the sky above a user', () => {
     };
   };
 
-  it('only counts planes that are low and close, nearest first', async () => {
-    const routes = knownRoutes();
+  const noRoutes: RouteSource = { routeFor: async () => null };
+
+  it('counts planes overhead first, then planes approaching, nearest first', async () => {
     const sky = createSky(
       fixedFeed([
         aircraft('CRUISE1', { altitudeFt: 37000, distanceNm: 0.2 }),
-        aircraft('FAR1', { distanceNm: 2.4 }),
+        aircraft('AWAY1', { distanceNm: 2.4, bearingDeg: 90, trackDeg: 90 }),
+        aircraft('INBOUND1', { distanceNm: 2.4, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 }),
         aircraft('ETD597', { distanceNm: 1.1 }),
         aircraft('ELY001', { distanceNm: 0.4 }),
       ]),
-      routes,
+      knownRoutes(),
     );
 
     const planes = await sky.planesAbove(BEN_GURION);
 
-    expect(planes.map(({ flight }) => flight)).toEqual(['ELY001', 'ETD597']);
+    expect(planes.map(({ flight, stage }) => `${flight}:${stage}`)).toEqual([
+      'ELY001:overhead',
+      'ETD597:overhead',
+      'INBOUND1:approaching',
+    ]);
   });
 
-  it('only spends route lookups on planes that are actually overhead', async () => {
+  it('only spends route lookups on planes that will pass over you', async () => {
     const routes = knownRoutes();
     const sky = createSky(
       fixedFeed([aircraft('CRUISE1', { altitudeFt: 37000 }), aircraft('ELY001', { distanceNm: 0.4 })]),
@@ -122,14 +128,20 @@ describe('the sky above a user', () => {
     expect(routes.asked).toEqual(['ELY001']);
   });
 
-  it('puts friendly aircraft names and a countdown on each plane', async () => {
-    const sky = createSky(
-      fixedFeed([aircraft('UAL90', { typeCode: 'B789', groundSpeedKt: 120, distanceNm: 0, trackDeg: 90 })]),
-      knownRoutes(),
-    );
+  it('names the airline and the aircraft', async () => {
+    const sky = createSky(fixedFeed([aircraft('ISR053', { typeCode: 'A320' })]), knownRoutes());
 
     const [plane] = await sky.planesAbove(BEN_GURION);
 
-    expect(plane).toMatchObject({ aircraft: '787-9', secondsLeft: 45, route: { to: 'TLV' } });
+    expect(plane).toMatchObject({ airline: 'Israir', aircraft: 'A320', route: { to: 'TLV' } });
+  });
+
+  it('keeps a plane whose route is unknown, with what we do know', async () => {
+    const sky = createSky(fixedFeed([aircraft('4XCDO', { typeCode: 'C25A' })]), noRoutes);
+
+    const [plane] = await sky.planesAbove(BEN_GURION);
+
+    expect(plane).toMatchObject({ flight: '4XCDO', aircraft: 'C25A', route: null, stage: 'overhead' });
+    expect(plane?.airline).toBeUndefined();
   });
 });

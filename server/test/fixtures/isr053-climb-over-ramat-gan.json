@@ -1,162 +1,390 @@
 {
   "flight": "ISR053",
-  "from": "Flightradar24 track, 3 Nov 2026, distances from Hakabaim St, Ramat Gan",
+  "source": "Flightradar24 track, 3 Nov 2026 (UTC). Distance and bearing are from Hakabaim St, Ramat Gan.",
   "samples": [
+    {
+      "time": "10:49:24",
+      "altitudeFt": 3375,
+      "groundSpeedKt": 153,
+      "trackDeg": 258,
+      "distanceNm": 3.395,
+      "bearingDeg": 183.0
+    },
+    {
+      "time": "10:49:26",
+      "altitudeFt": 3450,
+      "groundSpeedKt": 154,
+      "trackDeg": 261,
+      "distanceNm": 3.413,
+      "bearingDeg": 184.5
+    },
+    {
+      "time": "10:49:28",
+      "altitudeFt": 3525,
+      "groundSpeedKt": 156,
+      "trackDeg": 265,
+      "distanceNm": 3.425,
+      "bearingDeg": 185.7
+    },
+    {
+      "time": "10:49:30",
+      "altitudeFt": 3600,
+      "groundSpeedKt": 160,
+      "trackDeg": 275,
+      "distanceNm": 3.432,
+      "bearingDeg": 187.6
+    },
+    {
+      "time": "10:49:32",
+      "altitudeFt": 3650,
+      "groundSpeedKt": 163,
+      "trackDeg": 280,
+      "distanceNm": 3.432,
+      "bearingDeg": 189.1
+    },
+    {
+      "time": "10:49:35",
+      "altitudeFt": 3725,
+      "groundSpeedKt": 166,
+      "trackDeg": 286,
+      "distanceNm": 3.424,
+      "bearingDeg": 190.7
+    },
+    {
+      "time": "10:49:37",
+      "altitudeFt": 3775,
+      "groundSpeedKt": 171,
+      "trackDeg": 291,
+      "distanceNm": 3.406,
+      "bearingDeg": 192.4
+    },
+    {
+      "time": "10:49:39",
+      "altitudeFt": 3825,
+      "groundSpeedKt": 174,
+      "trackDeg": 297,
+      "distanceNm": 3.381,
+      "bearingDeg": 194.1
+    },
+    {
+      "time": "10:49:41",
+      "altitudeFt": 3875,
+      "groundSpeedKt": 181,
+      "trackDeg": 305,
+      "distanceNm": 3.339,
+      "bearingDeg": 196.2
+    },
+    {
+      "time": "10:49:43",
+      "altitudeFt": 3900,
+      "groundSpeedKt": 186,
+      "trackDeg": 310,
+      "distanceNm": 3.311,
+      "bearingDeg": 197.5
+    },
+    {
+      "time": "10:49:45",
+      "altitudeFt": 3950,
+      "groundSpeedKt": 191,
+      "trackDeg": 316,
+      "distanceNm": 3.253,
+      "bearingDeg": 199.5
+    },
+    {
+      "time": "10:49:48",
+      "altitudeFt": 3975,
+      "groundSpeedKt": 198,
+      "trackDeg": 321,
+      "distanceNm": 3.195,
+      "bearingDeg": 201.3
+    },
+    {
+      "time": "10:49:50",
+      "altitudeFt": 4000,
+      "groundSpeedKt": 202,
+      "trackDeg": 326,
+      "distanceNm": 3.12,
+      "bearingDeg": 203.4
+    },
+    {
+      "time": "10:49:52",
+      "altitudeFt": 4050,
+      "groundSpeedKt": 208,
+      "trackDeg": 330,
+      "distanceNm": 3.054,
+      "bearingDeg": 205.0
+    },
+    {
+      "time": "10:49:54",
+      "altitudeFt": 4075,
+      "groundSpeedKt": 214,
+      "trackDeg": 334,
+      "distanceNm": 2.964,
+      "bearingDeg": 207.0
+    },
+    {
+      "time": "10:49:56",
+      "altitudeFt": 4100,
+      "groundSpeedKt": 220,
+      "trackDeg": 339,
+      "distanceNm": 2.886,
+      "bearingDeg": 208.8
+    },
+    {
+      "time": "10:49:58",
+      "altitudeFt": 4150,
+      "groundSpeedKt": 228,
+      "trackDeg": 345,
+      "distanceNm": 2.792,
+      "bearingDeg": 210.7
+    },
+    {
+      "time": "10:50:01",
+      "altitudeFt": 4200,
+      "groundSpeedKt": 233,
+      "trackDeg": 349,
+      "distanceNm": 2.676,
+      "bearingDeg": 213.1
+    },
+    {
+      "time": "10:50:03",
+      "altitudeFt": 4250,
+      "groundSpeedKt": 239,
+      "trackDeg": 353,
+      "distanceNm": 2.573,
+      "bearingDeg": 215.0
+    },
+    {
+      "time": "10:50:05",
+      "altitudeFt": 4325,
+      "groundSpeedKt": 247,
+      "trackDeg": 355,
+      "distanceNm": 2.448,
+      "bearingDeg": 217.2
+    },
+    {
+      "time": "10:50:07",
+      "altitudeFt": 4400,
+      "groundSpeedKt": 252,
+      "trackDeg": 5,
+      "distanceNm": 2.309,
+      "bearingDeg": 219.5
+    },
+    {
+      "time": "10:50:09",
+      "altitudeFt": 4450,
+      "groundSpeedKt": 256,
+      "trackDeg": 10,
+      "distanceNm": 2.18,
+      "bearingDeg": 221.5
+    },
     {
       "time": "10:50:11",
       "altitudeFt": 4500,
-      "distanceNm": 2.08,
-      "groundSpeedKt": 262
+      "groundSpeedKt": 262,
+      "trackDeg": 14,
+      "distanceNm": 2.078,
+      "bearingDeg": 223.0
     },
     {
       "time": "10:50:14",
       "altitudeFt": 4600,
-      "distanceNm": 1.92,
-      "groundSpeedKt": 266
+      "groundSpeedKt": 266,
+      "trackDeg": 19,
+      "distanceNm": 1.916,
+      "bearingDeg": 225.3
     },
     {
       "time": "10:50:16",
       "altitudeFt": 4675,
-      "distanceNm": 1.77,
-      "groundSpeedKt": 271
+      "groundSpeedKt": 271,
+      "trackDeg": 23,
+      "distanceNm": 1.775,
+      "bearingDeg": 227.2
     },
     {
       "time": "10:50:18",
       "altitudeFt": 4750,
-      "distanceNm": 1.61,
-      "groundSpeedKt": 276
+      "groundSpeedKt": 276,
+      "trackDeg": 28,
+      "distanceNm": 1.608,
+      "bearingDeg": 229.2
     },
     {
       "time": "10:50:20",
       "altitudeFt": 4825,
-      "distanceNm": 1.46,
-      "groundSpeedKt": 282
+      "groundSpeedKt": 282,
+      "trackDeg": 34,
+      "distanceNm": 1.459,
+      "bearingDeg": 231.0
     },
     {
       "time": "10:50:22",
       "altitudeFt": 4900,
-      "distanceNm": 1.29,
-      "groundSpeedKt": 286
+      "groundSpeedKt": 286,
+      "trackDeg": 38,
+      "distanceNm": 1.295,
+      "bearingDeg": 232.8
     },
     {
       "time": "10:50:24",
       "altitudeFt": 5000,
-      "distanceNm": 1.13,
-      "groundSpeedKt": 290
+      "groundSpeedKt": 290,
+      "trackDeg": 43,
+      "distanceNm": 1.133,
+      "bearingDeg": 234.4
     },
     {
       "time": "10:50:27",
       "altitudeFt": 5125,
-      "distanceNm": 0.97,
-      "groundSpeedKt": 291
+      "groundSpeedKt": 291,
+      "trackDeg": 48,
+      "distanceNm": 0.968,
+      "bearingDeg": 235.7
     },
     {
       "time": "10:50:29",
       "altitudeFt": 5300,
-      "distanceNm": 0.77,
-      "groundSpeedKt": 292
+      "groundSpeedKt": 292,
+      "trackDeg": 53,
+      "distanceNm": 0.771,
+      "bearingDeg": 236.7
     },
     {
       "time": "10:50:31",
       "altitudeFt": 5450,
-      "distanceNm": 0.6,
-      "groundSpeedKt": 293
+      "groundSpeedKt": 293,
+      "trackDeg": 57,
+      "distanceNm": 0.602,
+      "bearingDeg": 236.8
     },
     {
       "time": "10:50:33",
       "altitudeFt": 5600,
-      "distanceNm": 0.43,
-      "groundSpeedKt": 294
+      "groundSpeedKt": 294,
+      "trackDeg": 62,
+      "distanceNm": 0.425,
+      "bearingDeg": 234.6
     },
     {
       "time": "10:50:35",
       "altitudeFt": 5775,
-      "distanceNm": 0.25,
-      "groundSpeedKt": 295
+      "groundSpeedKt": 295,
+      "trackDeg": 66,
+      "distanceNm": 0.248,
+      "bearingDeg": 225.7
     },
     {
       "time": "10:50:37",
       "altitudeFt": 5925,
-      "distanceNm": 0.12,
-      "groundSpeedKt": 296
+      "groundSpeedKt": 296,
+      "trackDeg": 69,
+      "distanceNm": 0.117,
+      "bearingDeg": 190.3
     },
     {
       "time": "10:50:39",
       "altitudeFt": 6075,
-      "distanceNm": 0.15,
-      "groundSpeedKt": 297
+      "groundSpeedKt": 297,
+      "trackDeg": 73,
+      "distanceNm": 0.151,
+      "bearingDeg": 118.8
     },
     {
       "time": "10:50:41",
       "altitudeFt": 6225,
-      "distanceNm": 0.3,
-      "groundSpeedKt": 297
+      "groundSpeedKt": 297,
+      "trackDeg": 79,
+      "distanceNm": 0.302,
+      "bearingDeg": 97.0
     },
     {
       "time": "10:50:43",
       "altitudeFt": 6375,
+      "groundSpeedKt": 298,
+      "trackDeg": 82,
       "distanceNm": 0.46,
-      "groundSpeedKt": 298
+      "bearingDeg": 91.7
     },
     {
       "time": "10:50:46",
       "altitudeFt": 6550,
-      "distanceNm": 0.67,
-      "groundSpeedKt": 297
+      "groundSpeedKt": 297,
+      "trackDeg": 86,
+      "distanceNm": 0.671,
+      "bearingDeg": 89.8
     },
     {
       "time": "10:50:48",
       "altitudeFt": 6700,
-      "distanceNm": 0.84,
-      "groundSpeedKt": 298
+      "groundSpeedKt": 298,
+      "trackDeg": 90,
+      "distanceNm": 0.842,
+      "bearingDeg": 89.8
     },
     {
       "time": "10:50:50",
       "altitudeFt": 6875,
-      "distanceNm": 1.02,
-      "groundSpeedKt": 296
+      "groundSpeedKt": 296,
+      "trackDeg": 96,
+      "distanceNm": 1.019,
+      "bearingDeg": 90.8
     },
     {
       "time": "10:50:52",
       "altitudeFt": 7000,
-      "distanceNm": 1.17,
-      "groundSpeedKt": 298
+      "groundSpeedKt": 298,
+      "trackDeg": 98,
+      "distanceNm": 1.167,
+      "bearingDeg": 91.6
     },
     {
       "time": "10:50:54",
       "altitudeFt": 7125,
-      "distanceNm": 1.33,
-      "groundSpeedKt": 298
+      "groundSpeedKt": 298,
+      "trackDeg": 101,
+      "distanceNm": 1.331,
+      "bearingDeg": 92.8
     },
     {
       "time": "10:50:56",
       "altitudeFt": 7300,
+      "groundSpeedKt": 298,
+      "trackDeg": 104,
       "distanceNm": 1.54,
-      "groundSpeedKt": 298
+      "bearingDeg": 94.5
     },
     {
       "time": "10:50:58",
       "altitudeFt": 7425,
-      "distanceNm": 1.71,
-      "groundSpeedKt": 297
+      "groundSpeedKt": 297,
+      "trackDeg": 107,
+      "distanceNm": 1.706,
+      "bearingDeg": 95.7
     },
     {
       "time": "10:51:00",
       "altitudeFt": 7550,
-      "distanceNm": 1.88,
-      "groundSpeedKt": 297
+      "groundSpeedKt": 297,
+      "trackDeg": 110,
+      "distanceNm": 1.875,
+      "bearingDeg": 97.1
     },
     {
       "time": "10:51:03",
       "altitudeFt": 7650,
-      "distanceNm": 2.03,
-      "groundSpeedKt": 298
+      "groundSpeedKt": 298,
+      "trackDeg": 112,
+      "distanceNm": 2.027,
+      "bearingDeg": 98.3
     },
     {
       "time": "10:51:05",
       "altitudeFt": 7725,
-      "distanceNm": 2.18,
-      "groundSpeedKt": 301
+      "groundSpeedKt": 301,
+      "trackDeg": 114,
+      "distanceNm": 2.184,
+      "bearingDeg": 99.6
     }
   ]
 }
