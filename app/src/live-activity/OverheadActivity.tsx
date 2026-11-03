@@ -1,17 +1,12 @@
-import { Circle, HStack, Image, Spacer, Text, VStack, ZStack } from '@expo/ui/swift-ui';
+import { HStack, Image, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import {
-  clipped,
   font,
   foregroundStyle,
-  frame,
   layoutPriority,
   lineLimit,
   minimumScaleFactor,
-  offset,
   opacity,
   padding,
-  rotationEffect,
-  strokeBorder,
   truncationMode,
 } from '@expo/ui/swift-ui/modifiers';
 import type { ActivityProps, Route } from '@overhead/shared';
@@ -20,16 +15,16 @@ import { createLiveActivity, type LiveActivityEnvironment } from 'expo-widgets';
 const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnvironment) => {
   'widget';
 
-  const light = environment.colorScheme === 'light';
-  const pick = (lightColor: string, darkColor: string) =>
-    environment.isLuminanceReduced ? '#FFFFFF' : light ? lightColor : darkColor;
-  const accent = pick('#9A5900', '#FFB340');
+  const accent = environment.isLuminanceReduced
+    ? '#FFFFFF'
+    : environment.colorScheme === 'light'
+      ? '#9A5900'
+      : '#FFB340';
   const stage = environment.isStale ? 'passed' : props.stage;
-  const arcColor = stage === 'passed' ? '#8E8E93' : pick('#2F7DE1', '#409CFF');
   const status = { approaching: 'Approaching', overhead: 'Above you now', passed: 'Passed' }[stage];
   const details = [props.airline ?? props.flight, props.aircraft].filter(Boolean).join(' · ');
 
-  const statusColor = stage === 'passed' ? arcColor : accent;
+  const statusColor = stage === 'passed' ? '#8E8E93' : accent;
   const statusLine = (size: number) => (
     <HStack spacing={6} modifiers={[layoutPriority(1)]}>
       <Image systemName="airplane" size={size} color={statusColor} />
@@ -45,41 +40,6 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
     </HStack>
   );
 
-  // The widget can't draw paths, so the route is the top of a big circle, cropped to a box.
-  const routeArc = () => {
-    const width = 300;
-    const rise = 40;
-    const radius = (width * width) / 8 / rise + rise / 2;
-    const lineWidth = 2.5;
-    const planeSize = 16;
-    const top = planeSize / 2;
-    const progress = { approaching: 0.32, overhead: 0.5, passed: 0.78 }[stage];
-    const x = width * (progress - 0.5);
-    const drop = radius - Math.sqrt(radius * radius - x * x);
-    const headingDeg = (Math.atan2(x, radius - drop) * 180) / Math.PI;
-    return (
-      <ZStack alignment="top" modifiers={[frame({ width, height: top + rise + lineWidth }), clipped()]}>
-        <Circle
-          modifiers={[
-            foregroundStyle('clear'),
-            strokeBorder({ content: arcColor, style: { lineWidth }, shape: 'circle' }),
-            frame({ width: radius * 2, height: radius * 2 }),
-            offset({ y: top }),
-          ]}
-        />
-        <Image
-          systemName="airplane"
-          size={planeSize}
-          color={arcColor}
-          modifiers={[
-            rotationEffect(headingDeg),
-            offset({ x, y: top + drop + lineWidth / 2 - planeSize / 2 }),
-          ]}
-        />
-      </ZStack>
-    );
-  };
-
   const airport = (code: string, city: string, alignment: 'leading' | 'trailing', size: number) => (
     <VStack alignment={alignment} spacing={2}>
       <Text modifiers={[font({ size, weight: 'bold' })]}>{code}</Text>
@@ -91,6 +51,8 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
     route ? (
       <HStack>
         {airport(route.from, route.fromCity, 'leading', size)}
+        <Spacer />
+        <Image systemName="airplane" size={size * 0.6} color={statusColor} />
         <Spacer />
         {airport(route.to, route.toCity, 'trailing', size)}
       </HStack>
@@ -120,7 +82,6 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
         <VStack spacing={16} modifiers={[padding({ all: 24 })]}>
           {statusRow(20)}
           {routeRow(props.route, 72)}
-          {routeArc()}
           {detailsLine(20)}
         </VStack>
       ),
@@ -129,14 +90,9 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
 
   return {
     banner: (
-      <VStack alignment="leading" spacing={8} modifiers={[padding({ all: 14 })]}>
+      <VStack alignment="leading" spacing={10} modifiers={[padding({ all: 14 })]}>
         {statusRow(13)}
         {routeRow(props.route, 34)}
-        <HStack>
-          <Spacer />
-          {routeArc()}
-          <Spacer />
-        </HStack>
         {detailsLine(13)}
       </VStack>
     ),
