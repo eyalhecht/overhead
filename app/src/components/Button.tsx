@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors, radius } from '@/lib/theme';
+import { radius, themedStyles } from '@/lib/theme';
 
 interface ButtonProps {
   label: string;
@@ -8,6 +8,7 @@ interface ButtonProps {
 }
 
 export function Button({ label, onPress, variant = 'primary' }: ButtonProps) {
+  const styles = useStyles();
   const primary = variant === 'primary';
   return (
     <Pressable
@@ -20,16 +21,18 @@ export function Button({ label, onPress, variant = 'primary' }: ButtonProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  primary: {
-    height: 52,
-    borderRadius: radius.card,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plain: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  pressed: { opacity: 0.7 },
-  primaryLabel: { color: colors.background, fontSize: 17, fontWeight: '600' },
-  plainLabel: { color: colors.accent, fontSize: 17, fontWeight: '600' },
-});
+const useStyles = themedStyles((colors) =>
+  StyleSheet.create({
+    primary: {
+      height: 54,
+      borderRadius: radius.button,
+      backgroundColor: colors.button,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    plain: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+    pressed: { opacity: 0.7 },
+    primaryLabel: { color: colors.buttonText, fontSize: 17, fontWeight: '600' },
+    plainLabel: { color: colors.accent, fontSize: 17, fontWeight: '600' },
+  }),
+);

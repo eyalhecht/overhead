@@ -18,16 +18,25 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
   const accent = environment.isLuminanceReduced
     ? '#FFFFFF'
     : environment.colorScheme === 'light'
-      ? '#A85F00'
+      ? '#9A5900'
       : '#FFB340';
   const stage = environment.isStale ? 'passed' : props.stage;
   const status = { approaching: 'Approaching', overhead: 'Above you now', passed: 'Passed' }[stage];
   const details = [props.airline ?? props.flight, props.aircraft].filter(Boolean).join(' · ');
 
+  const statusColor = stage === 'passed' ? '#8E8E93' : accent;
   const statusLine = (size: number) => (
     <HStack spacing={6} modifiers={[layoutPriority(1)]}>
-      <Image systemName="airplane" size={size} color={accent} />
-      <Text modifiers={[font({ size, weight: 'semibold' }), foregroundStyle(accent)]}>{status}</Text>
+      <Image systemName="airplane" size={size} color={statusColor} />
+      <Text modifiers={[font({ size, weight: 'semibold' }), foregroundStyle(statusColor)]}>{status}</Text>
+    </HStack>
+  );
+
+  const statusRow = (size: number) => (
+    <HStack>
+      {statusLine(size)}
+      <Spacer />
+      <Text modifiers={[font({ size, weight: 'semibold' }), opacity(0.6)]}>{props.flight}</Text>
     </HStack>
   );
 
@@ -43,7 +52,7 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
       <HStack>
         {airport(route.from, route.fromCity, 'leading', size)}
         <Spacer />
-        <Image systemName="airplane" size={size * 0.6} color={accent} />
+        <Image systemName="airplane" size={size * 0.6} color={statusColor} />
         <Spacer />
         {airport(route.to, route.toCity, 'trailing', size)}
       </HStack>
@@ -71,7 +80,7 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
     return {
       banner: (
         <VStack spacing={16} modifiers={[padding({ all: 24 })]}>
-          {statusLine(20)}
+          {statusRow(20)}
           {routeRow(props.route, 72)}
           {detailsLine(20)}
         </VStack>
@@ -82,7 +91,7 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
   return {
     banner: (
       <VStack alignment="leading" spacing={10} modifiers={[padding({ all: 14 })]}>
-        {statusLine(13)}
+        {statusRow(13)}
         {routeRow(props.route, 34)}
         {detailsLine(13)}
       </VStack>
