@@ -14,7 +14,7 @@ export default function SettingsScreen() {
   const { settings, update } = useSettings();
 
   return (
-    <Screen>
+    <Screen sheet>
       <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.done}>
         <Text style={styles.doneLabel}>Done</Text>
       </Pressable>

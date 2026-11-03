@@ -12,7 +12,7 @@ export default function RootLayout() {
     <SkyProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        <Stack.Screen name="look-up" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="look-up" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack>
     </SkyProvider>
