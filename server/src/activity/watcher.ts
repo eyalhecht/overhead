@@ -52,6 +52,7 @@ export function createWatcher({
       hasActivityToken: user.activityTokens.size > 0,
     });
     user.activity = state;
+    logChange(user, previous.showing?.props, action);
     if (action.type === 'start') {
       if (!(await startCard(user, action.props))) user.activity = previous;
       return;
@@ -66,6 +67,13 @@ export function createWatcher({
     if (result === 'delivered')
       console.log(`${userLabel(user)} card started: ${props.flight} ${props.stage}`);
     return result === 'delivered';
+  }
+
+  function logChange(user: User, before: ActivityProps | undefined, action: Action): void {
+    if (action.type === 'end') console.log(`${userLabel(user)} card ended: ${action.props.flight}`);
+    if (action.type !== 'update' || !before) return;
+    if (before.flight !== action.props.flight || before.stage !== action.props.stage)
+      console.log(`${userLabel(user)} card now: ${action.props.flight} ${action.props.stage}`);
   }
 
   function planesAbove(user: User, point: GeoPoint): Promise<NearbyPlane[]> {

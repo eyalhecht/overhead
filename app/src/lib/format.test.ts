@@ -70,7 +70,7 @@ describe('what the card says', () => {
 
   it.each([
     ['approaching', 'Approaching'],
-    ['overhead', 'Above you now'],
+    ['overhead', 'In sight'],
     ['passed', 'Passed'],
   ] as const)('says %s as "%s"', (stage, words) => {
     expect(describeStage(stage)).toBe(words);

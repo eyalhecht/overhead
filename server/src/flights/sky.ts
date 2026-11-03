@@ -5,7 +5,7 @@ import { passStage, type Aircraft } from './geometry.js';
 import type { PositionSource } from './positions.js';
 import type { RouteSource } from './routes.js';
 
-const SEARCH_RADIUS_NM = 10;
+const SEARCH_RADIUS_NM = 15;
 const STAGE_ORDER: PassStage[] = ['overhead', 'approaching', 'inbound'];
 
 export interface Sky {
@@ -14,12 +14,16 @@ export interface Sky {
 
 type PassingAircraft = Aircraft & { stage: PassStage };
 
-export function createSky(positions: PositionSource, routes: RouteSource): Sky {
+export function createSky(
+  positions: PositionSource,
+  routes: RouteSource,
+  stageOf: (aircraft: Aircraft) => PassStage | null = passStage,
+): Sky {
   return {
     async planesAbove(point) {
       const aircraft = await positions.aircraftNear(point, SEARCH_RADIUS_NM);
       const passing = aircraft
-        .map((plane) => ({ ...plane, stage: passStage(plane) }))
+        .map((plane) => ({ ...plane, stage: stageOf(plane) }))
         .filter((plane): plane is PassingAircraft => plane.stage !== null)
         .sort(byStageThenDistance);
 
