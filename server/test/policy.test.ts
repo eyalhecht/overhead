@@ -162,16 +162,16 @@ describe('nextStep', () => {
     expect(sim.lastAction).toMatchObject({ props: { flight: '4XCDO', route: null } });
   });
 
-  it('opens at most 5 new cards per hour', () => {
+  it('opens at most 10 new cards per hour', () => {
     const sim = new Simulation();
-    const starts = Array.from({ length: 6 }, (_, index) => {
+    const starts = Array.from({ length: 11 }, (_, index) => {
       const action = sim.step([plane(`FLT${index}`)]);
       sim.confirmCard();
       sim.step([]);
       sim.step([], ACTIVITY_RULES.passedLingerMs);
       return action;
     });
-    expect(starts).toEqual(['start', 'start', 'start', 'start', 'start', 'none']);
+    expect(starts).toEqual([...Array(10).fill('start'), 'none']);
   });
 
   it('backs off when the phone never confirms the card, and pauses new cards', () => {
