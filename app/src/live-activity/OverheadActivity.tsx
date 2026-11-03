@@ -23,7 +23,6 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
   const stage = environment.isStale ? 'passed' : props.stage;
   const status = { approaching: 'Approaching', overhead: 'Above you now', passed: 'Passed' }[stage];
   const details = [props.airline ?? props.flight, props.aircraft].filter(Boolean).join(' · ');
-  const islandCornerInset = 12;
 
   const statusLine = (size: number) => (
     <HStack spacing={6} modifiers={[layoutPriority(1)]}>
@@ -103,7 +102,7 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
       : routeRow(null, 24),
     expandedTrailing: props.route ? airport(props.route.to, props.route.toCity, 'trailing', 30) : undefined,
     expandedBottom: (
-      <HStack modifiers={[padding({ horizontal: islandCornerInset, bottom: 4 })]}>
+      <HStack modifiers={[padding({ horizontal: 12 })]}>
         {statusLine(13)}
         <Spacer />
         {detailsLine(13)}
