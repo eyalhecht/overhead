@@ -1,0 +1,162 @@
+{
+  "flight": "ISR053",
+  "from": "Flightradar24 track, 3 Nov 2026, distances from Hakabaim St, Ramat Gan",
+  "samples": [
+    {
+      "time": "10:50:11",
+      "altitudeFt": 4500,
+      "distanceNm": 2.08,
+      "groundSpeedKt": 262
+    },
+    {
+      "time": "10:50:14",
+      "altitudeFt": 4600,
+      "distanceNm": 1.92,
+      "groundSpeedKt": 266
+    },
+    {
+      "time": "10:50:16",
+      "altitudeFt": 4675,
+      "distanceNm": 1.77,
+      "groundSpeedKt": 271
+    },
+    {
+      "time": "10:50:18",
+      "altitudeFt": 4750,
+      "distanceNm": 1.61,
+      "groundSpeedKt": 276
+    },
+    {
+      "time": "10:50:20",
+      "altitudeFt": 4825,
+      "distanceNm": 1.46,
+      "groundSpeedKt": 282
+    },
+    {
+      "time": "10:50:22",
+      "altitudeFt": 4900,
+      "distanceNm": 1.29,
+      "groundSpeedKt": 286
+    },
+    {
+      "time": "10:50:24",
+      "altitudeFt": 5000,
+      "distanceNm": 1.13,
+      "groundSpeedKt": 290
+    },
+    {
+      "time": "10:50:27",
+      "altitudeFt": 5125,
+      "distanceNm": 0.97,
+      "groundSpeedKt": 291
+    },
+    {
+      "time": "10:50:29",
+      "altitudeFt": 5300,
+      "distanceNm": 0.77,
+      "groundSpeedKt": 292
+    },
+    {
+      "time": "10:50:31",
+      "altitudeFt": 5450,
+      "distanceNm": 0.6,
+      "groundSpeedKt": 293
+    },
+    {
+      "time": "10:50:33",
+      "altitudeFt": 5600,
+      "distanceNm": 0.43,
+      "groundSpeedKt": 294
+    },
+    {
+      "time": "10:50:35",
+      "altitudeFt": 5775,
+      "distanceNm": 0.25,
+      "groundSpeedKt": 295
+    },
+    {
+      "time": "10:50:37",
+      "altitudeFt": 5925,
+      "distanceNm": 0.12,
+      "groundSpeedKt": 296
+    },
+    {
+      "time": "10:50:39",
+      "altitudeFt": 6075,
+      "distanceNm": 0.15,
+      "groundSpeedKt": 297
+    },
+    {
+      "time": "10:50:41",
+      "altitudeFt": 6225,
+      "distanceNm": 0.3,
+      "groundSpeedKt": 297
+    },
+    {
+      "time": "10:50:43",
+      "altitudeFt": 6375,
+      "distanceNm": 0.46,
+      "groundSpeedKt": 298
+    },
+    {
+      "time": "10:50:46",
+      "altitudeFt": 6550,
+      "distanceNm": 0.67,
+      "groundSpeedKt": 297
+    },
+    {
+      "time": "10:50:48",
+      "altitudeFt": 6700,
+      "distanceNm": 0.84,
+      "groundSpeedKt": 298
+    },
+    {
+      "time": "10:50:50",
+      "altitudeFt": 6875,
+      "distanceNm": 1.02,
+      "groundSpeedKt": 296
+    },
+    {
+      "time": "10:50:52",
+      "altitudeFt": 7000,
+      "distanceNm": 1.17,
+      "groundSpeedKt": 298
+    },
+    {
+      "time": "10:50:54",
+      "altitudeFt": 7125,
+      "distanceNm": 1.33,
+      "groundSpeedKt": 298
+    },
+    {
+      "time": "10:50:56",
+      "altitudeFt": 7300,
+      "distanceNm": 1.54,
+      "groundSpeedKt": 298
+    },
+    {
+      "time": "10:50:58",
+      "altitudeFt": 7425,
+      "distanceNm": 1.71,
+      "groundSpeedKt": 297
+    },
+    {
+      "time": "10:51:00",
+      "altitudeFt": 7550,
+      "distanceNm": 1.88,
+      "groundSpeedKt": 297
+    },
+    {
+      "time": "10:51:03",
+      "altitudeFt": 7650,
+      "distanceNm": 2.03,
+      "groundSpeedKt": 298
+    },
+    {
+      "time": "10:51:05",
+      "altitudeFt": 7725,
+      "distanceNm": 2.18,
+      "groundSpeedKt": 301
+    }
+  ]
+}
