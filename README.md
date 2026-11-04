@@ -2,7 +2,7 @@
 
 An iPhone app that tells you where the plane above you is coming from and going to, on your Lock Screen, for exactly as long as it is above you.
 
-When a plane is about to pass low and close (below 10,000 ft, within ~2.8 km), a Live Activity appears about 45 seconds early as Approaching, says Above you now while it passes, and closes 20 seconds after it has Passed. The full behavior is in [PRODUCT.md](PRODUCT.md). The app itself is a minimal map of the sky around you plus a "look up" pointer.
+When a plane is about to come into view or earshot, a Live Activity appears as Approaching, says In sight while you could see or hear it, and closes 20 seconds after it has Passed. The full behavior is in [PRODUCT.md](PRODUCT.md). The app itself is a minimal map of the sky around you plus a "look up" pointer.
 
 ## How it works
 
