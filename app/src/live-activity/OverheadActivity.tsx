@@ -21,7 +21,7 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
       ? '#9A5900'
       : '#FFB340';
   const stage = environment.isStale ? 'passed' : props.stage;
-  const status = { approaching: 'Approaching', overhead: 'In sight', passed: 'Passed' }[stage];
+  const status = { approaching: 'Approaching', overhead: 'Above you now', passed: 'Passed' }[stage];
   const details = [props.airline ?? props.flight, props.aircraft].filter(Boolean).join(' · ');
 
   const statusColor = stage === 'passed' ? '#8E8E93' : accent;

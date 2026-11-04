@@ -10,20 +10,17 @@ Overhead is for everyday curiosity, not for aviation experts. Every decision bel
 
 ## Which planes get a card
 
-A plane gets a card while you could actually notice it: you can **see** it, or you can **hear** it.
+A plane gets a card when it is predicted to pass within about **2.8 km** of you, below **10,000 ft**.
 
-- **See:** it looks at least **0.5°** big in the sky (about a pea at arm's length) and is at least **25°** above the horizon, clear of the rooftops. A 737 counts out to about 4 km away, a 787 to about 7 km, a Cessna only nearly overhead.
-- **Hear:** its noise, from its type and distance, is louder than a city street (**55 dBA**). A low airliner counts even when buildings hide it.
-- Tiny dots, like airliners cruising at 35,000 ft, never get a card.
-- We predict where it will be from its position, heading, speed and climb or descent, using GPS altitude.
+- We predict its closest point to you from its position, heading and speed.
 - Planes on the ground are ignored.
 - Hovering aircraft (for example a police helicopter circling) are never shown. Only aircraft passing through count.
 - A plane we can't find a route for (private jet, military, helicopter) still gets a card, showing what we do know, such as "Private jet, Cessna Citation".
 
 ## When the card appears and disappears
 
-1. **Approaching:** the card appears about **10 seconds before** the plane comes into view or earshot.
-2. **In sight:** while you can see or hear it, overhead or off to the side.
+1. **Approaching:** the card appears about **45 seconds before** the plane is closest to you, so you have time to look up.
+2. **Above you now:** while the plane is passing over you.
 3. **Passed:** after it has gone, the card stays about **20 seconds** saying "Passed", then closes.
 
 If the plane turns and won't pass near you after all, the card ends quietly, with no "missed" message.
@@ -34,7 +31,7 @@ The card starts **silently**: the screen lights up, with no sound or vibration.
 
 - **Route:** "Tel Aviv → Eilat"
 - **Airline and aircraft:** "Israir · A320"
-- **Status:** "Approaching", "In sight" or "Passed". There is no countdown.
+- **Status:** "Approaching", "Above you now" or "Passed". There is no countdown.
 - **A plane icon** on the right.
 
 The tone is plain and warm. The look stays as it is today. There is no rare-aircraft label.
@@ -64,7 +61,5 @@ There are no cards between **22:00 and 07:00**. This is on by default and can be
 
 ## Known limits
 
-- Seeing and hearing are estimated, not measured: one size and loudness per aircraft class, the same rooftop height everywhere, daylight only. At night, lights make planes visible from farther away.
-- The prediction assumes the plane flies straight, so a plane turning toward you is recognized a little later.
-- iOS limits how many cards an app may start, without saying how many. We start at most 10 an hour; switching an open card to the next plane does not count.
-- Planes predicted to come into view within the next two minutes are watched too. They never appear on the card, but they keep a Passed card open so a busy sky stays on one card.
+- The prediction assumes the plane flies straight. A departure still turning onto its course is recognized later, about 30 seconds before it is closest instead of 45 (seen with ISR053 over Ramat Gan).
+- Planes predicted to pass within the next two minutes are watched too. They never appear on the card, but they keep a Passed card open so a busy sky stays on one card.
