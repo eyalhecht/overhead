@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { passStage, type Aircraft } from '../src/flights/geometry.js';
+import { closestApproach, passStage, type Aircraft } from '../src/flights/geometry.js';
 
 interface TrackSample extends Pick<
   Aircraft,
@@ -27,17 +27,34 @@ const aircraft = (overrides: Partial<Aircraft> = {}): Aircraft => ({
 const secondsBetween = (from: string, to: string) =>
   (Date.parse(`2026-11-03T${to}Z`) - Date.parse(`2026-11-03T${from}Z`)) / 1000;
 
+describe('closestApproach', () => {
+  it('meets a plane heading straight at you when it reaches you: 2 nm at 240 kn is 30 s', () => {
+    const plane = aircraft({ distanceNm: 2, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
+    expect(closestApproach(plane)).toEqual({ distanceNm: 0, inSeconds: 30 });
+  });
+
+  it('finds how close a plane flying past you will get', () => {
+    const plane = aircraft({ distanceNm: 2, bearingDeg: 0, trackDeg: 90, groundSpeedKt: 120 });
+    expect(closestApproach(plane)).toEqual({ distanceNm: 2, inSeconds: 0 });
+  });
+
+  it('is now for a plane flying away', () => {
+    const plane = aircraft({ distanceNm: 2, bearingDeg: 90, trackDeg: 90 });
+    expect(closestApproach(plane)).toEqual({ distanceNm: 2, inSeconds: 0 });
+  });
+});
+
 describe('passStage', () => {
   it('is overhead for a low plane inside the circle', () => {
     expect(passStage(aircraft({ distanceNm: 1.2, altitudeFt: 5500 }))).toBe('overhead');
   });
 
-  it('is approaching for a plane that comes into view within 10 seconds', () => {
-    const plane = aircraft({ distanceNm: 1.6, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
+  it('is approaching for a plane that will pass over you within 45 seconds', () => {
+    const plane = aircraft({ distanceNm: 3, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
     expect(passStage(plane)).toBe('approaching');
   });
 
-  it('is inbound for a plane that comes into view within two minutes, but not in 10 seconds', () => {
+  it('is inbound for a plane that will pass over you within two minutes, but not yet in 45 seconds', () => {
     const plane = aircraft({ distanceNm: 6, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 });
     expect(passStage(plane)).toBe('inbound');
   });
@@ -56,18 +73,8 @@ describe('passStage', () => {
     expect(passStage(aircraft({ distanceNm: 2, bearingDeg: 90, trackDeg: 90 }))).toBeNull();
   });
 
-  it('ignores an airliner cruising high above you', () => {
-    expect(passStage(aircraft({ altitudeFt: 35_000 }))).toBeNull();
-  });
-
-  it('shows an airliner at 10,500 ft right above you, which is still easy to see', () => {
-    expect(passStage(aircraft({ altitudeFt: 10_500 }))).toBe('overhead');
-  });
-
-  it('expects a descending plane to come into view as it gets lower', () => {
-    const inbound = { altitudeFt: 16_000, distanceNm: 3, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 };
-    expect(passStage(aircraft(inbound))).toBeNull();
-    expect(passStage(aircraft({ ...inbound, verticalRateFpm: -2500 }))).toBe('inbound');
+  it('ignores a plane above 10,000 ft', () => {
+    expect(passStage(aircraft({ altitudeFt: 10_500 }))).toBeNull();
   });
 
   it('ignores a hovering helicopter right above you', () => {
