@@ -6,7 +6,7 @@ const METERS_PER_FOOT = 0.3048;
 const METERS_PER_NM = 1852;
 const STAGE_WORDS: Record<CardStage, string> = {
   approaching: 'Approaching',
-  overhead: 'Above you now',
+  overhead: 'In sight',
   passed: 'Passed',
 };
 

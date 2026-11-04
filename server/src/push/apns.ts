@@ -15,7 +15,7 @@ const OPEN_ON_TAP = 'overhead://look-up';
 const STALE_AFTER_SECONDS = 60;
 const ALERT_TITLES: Record<CardStage, string> = {
   approaching: 'Approaching',
-  overhead: 'Above you now',
+  overhead: 'In sight',
   passed: 'Passed',
 };
 const AUTH_TOKEN_TTL_MS = 40 * 60_000;

@@ -25,6 +25,21 @@ describe('parseReadsbResponse', () => {
     ]);
   });
 
+  it('prefers GPS altitude, since pressure altitude drifts with the weather', () => {
+    const [plane] = parseReadsbResponse({
+      ac: [{ hex: 'abc', flight: 'BAW16', alt_baro: 525, alt_geom: 925, baro_rate: -700, dst: 1, dir: 0 }],
+    });
+    expect(plane?.altitudeFt).toBe(925);
+    expect(plane?.verticalRateFpm).toBe(-700);
+  });
+
+  it('still uses pressure altitude when there is no GPS altitude', () => {
+    const [plane] = parseReadsbResponse({
+      ac: [{ hex: 'abc', flight: 'BAW16', alt_baro: 525, dst: 1, dir: 0 }],
+    });
+    expect(plane?.altitudeFt).toBe(525);
+  });
+
   it('treats a missing aircraft list as an empty sky', () => {
     expect(parseReadsbResponse({})).toEqual([]);
   });

@@ -25,7 +25,10 @@ const ReadsbAircraftSchema = z.object({
   hex: z.string(),
   flight: z.string().trim().min(1),
   t: z.string().optional(),
+  category: z.string().optional(),
   alt_baro: z.number(),
+  alt_geom: z.number().optional(),
+  baro_rate: z.number().optional(),
   gs: z.number().default(0),
   track: z.number().default(0),
   dst: z.number(),
@@ -58,13 +61,15 @@ export function parseReadsbResponse(body: unknown): Aircraft[] {
   return ReadsbResponseSchema.parse(body).ac.flatMap((entry) => {
     const parsed = ReadsbAircraftSchema.safeParse(entry);
     if (!parsed.success) return [];
-    const { hex, flight, t, alt_baro, gs, track, dst, dir } = parsed.data;
+    const { hex, flight, t, category, alt_baro, alt_geom, baro_rate, gs, track, dst, dir } = parsed.data;
     return [
       {
         id: hex,
         flight,
         typeCode: t,
-        altitudeFt: alt_baro,
+        category,
+        altitudeFt: alt_geom ?? alt_baro,
+        verticalRateFpm: baro_rate,
         groundSpeedKt: gs,
         trackDeg: track,
         distanceNm: dst,

@@ -46,7 +46,7 @@ describe('a real adsb.fi response captured over Ben Gurion', () => {
 
   it('reads altitude, speed and position in the units the geometry expects', () => {
     const microlight = parseReadsbResponse(capturedOverBenGurion).find(({ flight }) => flight === '4XHSC');
-    expect(microlight).toMatchObject({ typeCode: 'EV97', altitudeFt: 275 });
+    expect(microlight).toMatchObject({ typeCode: 'EV97', altitudeFt: 450 });
     expect(microlight?.groundSpeedKt).toBeCloseTo(94.4);
     expect(microlight?.distanceNm).toBeCloseTo(7.61, 1);
   });
@@ -125,7 +125,7 @@ describe('the sky above a user', () => {
       fixedFeed([
         aircraft('CRUISE1', { altitudeFt: 37000, distanceNm: 0.2 }),
         aircraft('AWAY1', { distanceNm: 2.4, bearingDeg: 90, trackDeg: 90 }),
-        aircraft('INBOUND1', { distanceNm: 2.4, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 }),
+        aircraft('INBOUND1', { distanceNm: 1.6, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 }),
         aircraft('ETD597', { distanceNm: 1.1 }),
         aircraft('ELY001', { distanceNm: 0.4 }),
       ]),
