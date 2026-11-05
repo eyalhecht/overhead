@@ -2,8 +2,6 @@ import type { NearbyPlane } from '@overhead/shared';
 import { describeDirection, elevationAngle, relativeBearing } from './format';
 
 const FACING_WITHIN_DEG = 10;
-const LOW_BELOW_DEG = 20;
-const HIGH_FROM_DEG = 60;
 
 export interface LookUpGuide {
   arrowDeg: number;
@@ -24,10 +22,4 @@ export function lookUpGuide(plane: NearbyPlane, headingDeg: number): LookUpGuide
 
 export function tapsWhenFacing(wasFacing: boolean, facing: boolean): boolean {
   return facing && !wasFacing;
-}
-
-export function elevationHint(elevationDeg: number): string {
-  if (elevationDeg < LOW_BELOW_DEG) return 'Look low, just above the horizon';
-  if (elevationDeg < HIGH_FROM_DEG) return 'Look about halfway up the sky';
-  return 'Look almost straight up';
 }

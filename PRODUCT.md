@@ -38,7 +38,7 @@ The tone is plain and warm. The look stays as it is today. There is no rare-airc
 
 **Dynamic Island, compact:** "✈ TLV … ETM", with the origin code on the left and the destination code on the right.
 
-**Tapping the card** opens the "Where to look" compass screen.
+**Tapping the card** opens the app. There the same card shows an arrow that turns with your phone, goes green when you face the plane, and says how high to look.
 
 ## More than one plane
 

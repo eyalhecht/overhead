@@ -1,4 +1,4 @@
-import { Link, Redirect, router } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
@@ -37,7 +37,9 @@ export default function HomeScreen() {
         </Link>
       </View>
 
-      {permission === 'denied' && !card ? (
+      {card ? (
+        <FlightCard card={card} plane={cardPlane} />
+      ) : permission === 'denied' ? (
         <Card style={styles.message}>
           <View style={styles.messageIcon}>
             <Icon name="pin" color={colors.accent} size={26} />
@@ -47,29 +49,22 @@ export default function HomeScreen() {
           <Button label="Open Settings" onPress={() => void Linking.openSettings()} />
         </Card>
       ) : (
+        <View style={styles.waiting}>
+          <Text style={styles.messageTitle}>
+            {location ? 'Waiting for the next plane' : 'Finding your location…'}
+          </Text>
+          {location && (
+            <Text style={styles.messageText}>
+              It will show up here and on your Lock Screen the moment one comes close.
+            </Text>
+          )}
+        </View>
+      )}
+
+      {permission !== 'denied' && (
         <Card style={styles.map}>
           <SkyMap planes={planes} highlightedId={cardPlane?.id} heading={heading} />
         </Card>
-      )}
-
-      {card ? (
-        <>
-          <FlightCard card={card} plane={cardPlane} onPress={() => router.push('/look-up')} />
-          {card.stage !== 'passed' && <Text style={styles.hint}>Tap to see where to look</Text>}
-        </>
-      ) : (
-        permission !== 'denied' && (
-          <Card style={styles.message}>
-            <Text style={styles.messageTitle}>
-              {location ? 'No planes above you right now' : 'Finding your location…'}
-            </Text>
-            {location && (
-              <Text style={styles.messageText}>
-                When one is about to pass, it shows up here and on your Lock Screen.
-              </Text>
-            )}
-          </Card>
-        )
       )}
     </Screen>
   );
@@ -106,6 +101,15 @@ const useStyles = themedStyles((colors) =>
       textAlign: 'center',
       marginBottom: 6,
     },
-    hint: { color: colors.accent, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+    waiting: {
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 28,
+      paddingHorizontal: 20,
+      borderRadius: 26,
+      borderWidth: 2,
+      borderStyle: 'dashed',
+      borderColor: colors.routeTrack,
+    },
   }),
 );
