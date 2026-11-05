@@ -9,7 +9,11 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_SERVER_URL": "https://34-71-157-28.sslip.io"
+      }
     },
     "preview": {
       "distribution": "internal",
