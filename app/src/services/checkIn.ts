@@ -10,7 +10,6 @@ const LOCATION_STORAGE_KEY = 'lastLocation';
 const MAINTENANCE_INTERVAL_MS = 5000;
 const MAX_SILENCE_MS = 60_000;
 const MAX_CARD_AGE_MS = 30 * 60_000;
-const COORDINATE_DECIMALS = 3;
 
 let startToken: string | undefined;
 let lastLocation: GeoPoint | undefined;
@@ -31,8 +30,7 @@ export async function checkIn(location?: GeoPoint): Promise<void> {
 
   await register({
     deviceId,
-    lat: round(target.lat),
-    lon: round(target.lon),
+    ...target,
     startToken: settings.liveActivities ? startToken : undefined,
     activityTokens,
     quietHours: settings.quietHours ? QUIET_HOURS : null,
@@ -89,8 +87,4 @@ async function storedLocation(): Promise<GeoPoint | undefined> {
   const stored = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
   lastLocation = stored ? (JSON.parse(stored) as GeoPoint) : undefined;
   return lastLocation;
-}
-
-function round(coordinate: number): number {
-  return Number(coordinate.toFixed(COORDINATE_DECIMALS));
 }
