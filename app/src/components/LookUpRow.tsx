@@ -4,17 +4,15 @@ import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G, Line, Path } from 'react-native-svg';
 import { HorizonGauge } from '@/components/HorizonGauge';
-import { useSky } from '@/hooks/useSky';
 import { lookUpGuide, tapsWhenFacing } from '@/lib/lookUp';
 import { themedStyles, useColors } from '@/lib/theme';
 
 const ARROW_PATH = 'M130 32 L162 112 L138 104 L138 196 L122 196 L122 104 L98 112 Z';
 const DIAL_SIZE = 76;
 
-export function LookUpRow({ plane }: { plane: NearbyPlane }) {
+export function LookUpRow({ plane, heading }: { plane: NearbyPlane; heading: number }) {
   const styles = useStyles();
   const colors = useColors();
-  const { heading } = useSky();
   const guide = lookUpGuide(plane, heading);
   useTapWhenFacing(guide.facing);
   const pointerColor = guide.facing ? colors.success : colors.accent;

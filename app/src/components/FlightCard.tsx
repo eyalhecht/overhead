@@ -6,10 +6,18 @@ import { LookUpRow } from '@/components/LookUpRow';
 import { RouteArc } from '@/components/RouteArc';
 import { cardText } from '@overhead/shared/cardText';
 import { formatAltitude, formatDistance } from '@/lib/format';
-import { PLANE_ICON } from '@/lib/skyMap';
+import { PLANE_ICON } from '@/lib/planeIcon';
 import { themedStyles, useColors } from '@/lib/theme';
 
-export function FlightCard({ card, plane }: { card: ActivityProps; plane?: NearbyPlane }) {
+export function FlightCard({
+  card,
+  plane,
+  heading,
+}: {
+  card: ActivityProps;
+  plane?: NearbyPlane;
+  heading: number;
+}) {
   const styles = useStyles();
   const position = plane && [`${formatDistance(plane.distanceNm)} away`, formatAltitude(plane.altitudeFt)];
 
@@ -19,7 +27,7 @@ export function FlightCard({ card, plane }: { card: ActivityProps; plane?: Nearb
       {plane && card.stage !== 'passed' && (
         <>
           <View style={styles.divider} />
-          <LookUpRow plane={plane} />
+          <LookUpRow plane={plane} heading={heading} />
         </>
       )}
     </Card>

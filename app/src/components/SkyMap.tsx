@@ -2,7 +2,8 @@ import type { NearbyPlane } from '@overhead/shared';
 import { StyleSheet } from 'react-native';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import { compassDirection, formatDistance } from '@/lib/format';
-import { MAP, northLabelPosition, placePlane, PLANE_ICON, zoomFor } from '@/lib/skyMap';
+import { PLANE_ICON } from '@/lib/planeIcon';
+import { MAP, northLabelPosition, placePlane, zoomFor } from '@/lib/skyMap';
 import { useColors } from '@/lib/theme';
 
 const PATH_HALF_LENGTH = 400;
