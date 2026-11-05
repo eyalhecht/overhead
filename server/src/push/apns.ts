@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import http2 from 'node:http2';
-import type { ActivityProps, CardStage } from '@overhead/shared';
+import { cardText, liveActivityContent, type ActivityProps } from '@overhead/shared';
 import type { ApnsConfig } from '../config.js';
 
 export type LiveActivityEvent = 'start' | 'update' | 'end';
@@ -13,11 +13,6 @@ export interface PushClient {
 const ACTIVITY_NAME = 'Overhead';
 const OPEN_ON_TAP = 'overhead://';
 const STALE_AFTER_SECONDS = 60;
-const ALERT_TITLES: Record<CardStage, string> = {
-  approaching: 'Approaching',
-  overhead: 'Above you now',
-  passed: 'Passed',
-};
 const AUTH_TOKEN_TTL_MS = 40 * 60_000;
 const IDLE_CONNECTION_MS = 5 * 60_000;
 const INVALID_TOKEN_REASONS = new Set([
@@ -28,26 +23,23 @@ const INVALID_TOKEN_REASONS = new Set([
 ]);
 
 export function buildLiveActivityPayload(event: LiveActivityEvent, props: ActivityProps, nowSeconds: number) {
+  const text = cardText(props);
   return {
     aps: {
       timestamp: nowSeconds,
       event,
-      'content-state': { name: ACTIVITY_NAME, props: JSON.stringify(props) },
+      'content-state': { name: ACTIVITY_NAME, props: JSON.stringify(liveActivityContent(props)) },
       ...(event === 'start' && {
         'attributes-type': 'LiveActivityAttributes',
         attributes: { url: OPEN_ON_TAP },
         'input-push-token': 1,
-        alert: { title: ALERT_TITLES[props.stage], body: alertBody(props) },
+        alert: { title: text.status, body: props.route ? text.title : text.details },
       }),
       ...(event === 'end'
         ? { 'dismissal-date': nowSeconds }
         : { 'stale-date': nowSeconds + STALE_AFTER_SECONDS }),
     },
   };
-}
-
-function alertBody({ route, aircraft, flight }: ActivityProps): string {
-  return route ? `${route.from} → ${route.to}` : (aircraft ?? flight);
 }
 
 export function pushPriority(event: LiveActivityEvent): '5' | '10' {
@@ -136,7 +128,7 @@ export function createDryRunPushClient(onCardStarted: () => void = () => {}): Pu
   return {
     async send(_token, event, props) {
       if (event === 'start') onCardStarted();
-      console.log(`[dry run] ${event.padEnd(6)} ${props.flight} ${alertBody(props)} (${props.stage})`);
+      console.log(`[dry run] ${event.padEnd(6)} ${props.flight} ${cardText(props).title} (${props.stage})`);
       return 'delivered';
     },
   };

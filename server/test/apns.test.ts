@@ -2,7 +2,7 @@ import { generateKeyPairSync, verify, type KeyObject } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import http2, { type IncomingHttpHeaders, type ServerHttp2Session } from 'node:http2';
 import type { AddressInfo } from 'node:net';
-import type { ActivityProps } from '@overhead/shared';
+import { cardText, type ActivityProps } from '@overhead/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildLiveActivityPayload, createApnsClient, type PushClient } from '../src/push/apns.js';
 
@@ -113,7 +113,10 @@ describe('APNs client', () => {
       'apns-topic': 'com.example.overhead.push-type.liveactivity',
       'apns-priority': '10',
     });
-    expect(push?.body.aps).toMatchObject({ event: 'start', alert: { body: 'AUH → TLV' } });
+    expect(push?.body.aps).toMatchObject({
+      event: 'start',
+      alert: { title: 'Approaching', body: 'Abu Dhabi → Tel Aviv' },
+    });
   });
 
   it('sends routine updates at the low priority that does not use the iOS budget', async () => {
@@ -196,14 +199,14 @@ describe('Live Activity payload', () => {
     });
   });
 
-  it('opens the Where to look screen when the card is tapped', () => {
+  it('opens the app when the card is tapped', () => {
     const { aps } = buildLiveActivityPayload('start', card, nowSeconds);
     expect(aps).toMatchObject({ attributes: { url: 'overhead://' } });
   });
 
-  it('names a plane without a known route by its aircraft in the alert', () => {
+  it('names a plane without a known route by what we know in the alert', () => {
     const { aps } = buildLiveActivityPayload('start', { ...card, route: null }, nowSeconds);
-    expect(aps).toMatchObject({ alert: { body: 'A321neo' } });
+    expect(aps).toMatchObject({ alert: { body: 'Etihad Airways · A321neo' } });
   });
 
   it('marks the card stale when no update arrives for a minute', () => {
@@ -221,6 +224,6 @@ describe('Live Activity payload', () => {
     const { aps } = buildLiveActivityPayload('update', card, nowSeconds);
     const state = aps['content-state'] as { name: string; props: string };
     expect(state.name).toBe('Overhead');
-    expect(JSON.parse(state.props)).toEqual(card);
+    expect(JSON.parse(state.props)).toEqual({ ...card, ...cardText(card) });
   });
 });

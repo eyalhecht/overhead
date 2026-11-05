@@ -61,3 +61,5 @@ export interface SkySnapshot {
   planes: NearbyPlane[];
   card: ActivityProps | null;
 }
+
+export * from './cardText.js';

@@ -1,11 +1,7 @@
-import type { ActivityProps } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import {
-  cardDetails,
-  cardTitle,
   compassDirection,
   describeDirection,
-  describeStage,
   elevationAngle,
   formatDistance,
   relativeBearing,
@@ -56,42 +52,6 @@ describe('where to look', () => {
     [359.9, 'North'],
   ])('names a bearing of %f° as %s', (bearingDeg, name) => {
     expect(compassDirection(bearingDeg)).toBe(name);
-  });
-});
-
-describe('what the card says', () => {
-  const card: ActivityProps = {
-    flight: 'ISR053',
-    airline: 'Israir',
-    aircraft: 'A320',
-    route: { from: 'TLV', fromCity: 'Tel Aviv', to: 'ETM', toCity: 'Eilat' },
-    stage: 'approaching',
-  };
-
-  it.each([
-    ['approaching', 'Approaching'],
-    ['overhead', 'Above you now'],
-    ['passed', 'Passed'],
-  ] as const)('says %s as "%s"', (stage, words) => {
-    expect(describeStage(stage)).toBe(words);
-  });
-
-  it('titles the card with the two cities', () => {
-    expect(cardTitle(card)).toBe('Tel Aviv → Eilat');
-  });
-
-  it('says the route is unknown when it is', () => {
-    expect(cardTitle({ ...card, route: null })).toBe('Route unknown');
-  });
-
-  it('names the airline and the aircraft', () => {
-    expect(cardDetails(card)).toBe('Israir · A320');
-  });
-
-  it('falls back to the callsign when the airline is unknown', () => {
-    expect(cardDetails({ ...card, airline: undefined, aircraft: 'C25A', flight: '4XCDO' })).toBe(
-      '4XCDO · C25A',
-    );
   });
 });
 
