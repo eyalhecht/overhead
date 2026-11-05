@@ -18,6 +18,7 @@ Not collected: name, email, account, contacts, the exact location, advertising I
 
 - **The Overhead server** (Google Cloud, `us-central1`, United States) keeps the data above in a SQLite file readable only by the server process, on a disk Google encrypts at rest. Traffic arrives over HTTPS (Caddy) and is checked against an app key.
 - **adsb.fi and adsb.lol** (flight position feeds) receive the rough location, without any identifier, when the server asks which planes are near a phone.
+- **IP addresses** reach the server with every request, as with any internet service. Neither the app server nor Caddy logs or stores them.
 - **Apple Push Notification service** receives push tokens and the card's flight details.
 - **Flightradar24** receives flight callsigns only, to look up routes. No user data.
 
