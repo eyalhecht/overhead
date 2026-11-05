@@ -4,21 +4,21 @@ import { getIosIdForVendorAsync } from 'expo-application';
 import { addPushToStartTokenListener } from 'expo-widgets';
 import OverheadActivity from '@/live-activity/OverheadActivity';
 import { register } from './api';
-import { QUIET_HOURS, roughLocation } from '@overhead/shared/rules';
+import { QUIET_HOURS } from '@overhead/shared/rules';
 import { cardsTooOld, isCheckInDue, type LastReport } from '@/lib/checkInSchedule';
+import { createLocationMemory } from './locationMemory';
 import { loadSettings, onSettingsChange } from './settings';
 
-const LOCATION_STORAGE_KEY = 'lastLocation';
 const MAINTENANCE_INTERVAL_MS = 5000;
 
 let startToken: string | undefined;
-let lastLocation: GeoPoint | undefined;
+const locationMemory = createLocationMemory(AsyncStorage);
 let lastReport: LastReport = { activityTokens: '', at: 0 };
 let cardFirstSeen = new Map<string, number>();
 
 export async function checkIn(location?: GeoPoint): Promise<void> {
-  if (location) await rememberLocation(location);
-  const target = lastLocation ?? (await storedLocation());
+  if (location) await locationMemory.remember(location);
+  const target = await locationMemory.recall();
   if (!target) return;
 
   const [deviceId, settings, activityTokens] = await Promise.all([
@@ -79,15 +79,4 @@ function closeOldCards(): void {
   for (const card of cards) {
     if (tooOld.includes(card.getId())) void card.end('immediate').catch(() => undefined);
   }
-}
-
-async function rememberLocation(location: GeoPoint): Promise<void> {
-  lastLocation = roughLocation(location);
-  await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(lastLocation));
-}
-
-async function storedLocation(): Promise<GeoPoint | undefined> {
-  const stored = await AsyncStorage.getItem(LOCATION_STORAGE_KEY);
-  lastLocation = stored ? (JSON.parse(stored) as GeoPoint) : undefined;
-  return lastLocation;
 }
