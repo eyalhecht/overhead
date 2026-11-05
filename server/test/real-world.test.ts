@@ -154,7 +154,7 @@ describe('real-world situations', () => {
     const user = world.join();
     await world.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 90));
 
-    world.join({ startToken: undefined, activityTokens: [...user.activityTokens] });
+    world.join({ startToken: undefined, activityTokens: [...user.activity.cardTokens] });
     await world.run(
       10 * MINUTE_MS,
       together(passing('ELY001', -UNTIL_OVERHEAD_MS, 90), passing('WZZ63', 5 * MINUTE_MS, 90)),
@@ -283,7 +283,7 @@ describe('real-world situations', () => {
       expect(world.pushes('start').length).toBeLessThanOrEqual(flights.length);
       expect(world.pushes('end')).toHaveLength(world.pushes('start').length);
       expect(user.activity.pausedUntil).toBeUndefined();
-      expect(user.activityTokens.size).toBe(0);
+      expect(user.activity.cardTokens).toEqual([]);
     });
 
     it('still shows the first plane when its push hits a dropped connection', async () => {

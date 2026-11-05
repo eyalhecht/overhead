@@ -2,9 +2,11 @@ import type { NearbyPlane, PassStage } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_RULES,
-  acknowledgeActivityToken,
+  afterPush,
   initialActivityState,
   nextStep,
+  pushesFor,
+  receiveCardTokens,
   type Action,
   type ActivityState,
 } from '../src/activity/policy.js';
@@ -19,7 +21,6 @@ class Simulation {
   state: ActivityState = initialActivityState();
   now = 0;
   canStart = true;
-  hasToken = false;
   lastAction: Action = { type: 'none' };
 
   step(planes: NearbyPlane[], afterMs = 5 * SECOND) {
@@ -28,10 +29,12 @@ class Simulation {
       planes,
       now: this.now,
       canStart: this.canStart,
-      hasActivityToken: this.hasToken,
     });
     this.state = state;
     this.lastAction = action;
+    if (action.type === 'end') {
+      for (const push of pushesFor(action, state)) this.state = afterPush(this.state, push, 'delivered');
+    }
     return action.type;
   }
 
@@ -39,9 +42,8 @@ class Simulation {
     return 'props' in this.lastAction ? this.lastAction.props.stage : undefined;
   }
 
-  confirmCard() {
-    this.hasToken = true;
-    this.state = acknowledgeActivityToken(this.state);
+  confirmCard(token = 'card-1') {
+    this.state = receiveCardTokens(this.state, [token]).state;
   }
 }
 
@@ -132,7 +134,6 @@ describe('nextStep', () => {
       planes: [plane('BAW1', 'overhead'), plane('DLH2', 'approaching')],
       now: MINUTE,
       canStart: true,
-      hasActivityToken: false,
     });
     expect(action).toMatchObject({ type: 'start', props: { flight: 'BAW1' } });
   });
@@ -142,7 +143,6 @@ describe('nextStep', () => {
       planes: [nearbyPlane('ISR053', { airline: 'Israir', aircraft: 'A320' })],
       now: MINUTE,
       canStart: true,
-      hasActivityToken: false,
     });
     expect(action).toMatchObject({
       type: 'start',
@@ -205,5 +205,92 @@ describe('nextStep', () => {
     expect(sim.step([plane('KLM3')], 9 * MINUTE)).toBe('update');
     expect(sim.step([plane('BAW9')], 5 * MINUTE)).toBe('end');
     expect(sim.step([plane('BAW9')])).toBe('start');
+  });
+});
+
+describe('card tokens', () => {
+  it('updates a card token that arrives while the card is showing, right away', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    const { pushes } = receiveCardTokens(sim.state, ['card-1']);
+    expect(pushes).toEqual([
+      { token: 'card-1', event: 'update', props: expect.objectContaining({ flight: 'BAW1' }) },
+    ]);
+  });
+
+  it('ends a card whose token arrives after the plane has gone', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.state = afterPush(
+      sim.state,
+      { token: 'start', event: 'start', props: sim.state.lastProps! },
+      'delivered',
+    );
+    sim.state = { ...sim.state, showing: undefined };
+    const { pushes } = receiveCardTokens(sim.state, ['late-card']);
+    expect(pushes).toMatchObject([{ token: 'late-card', event: 'end', props: { flight: 'BAW1' } }]);
+  });
+
+  it('keeps trying to end a card until Apple takes the end', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.confirmCard();
+    const end = { token: 'card-1', event: 'end' as const, props: sim.state.lastProps! };
+    sim.state = { ...sim.state, showing: undefined };
+
+    sim.state = afterPush(sim.state, end, 'failed');
+    expect(nextStep(sim.state, { planes: [], now: sim.now, canStart: true }).action.type).toBe('end');
+    sim.state = afterPush(sim.state, end, 'delivered');
+    expect(nextStep(sim.state, { planes: [], now: sim.now, canStart: true }).action.type).toBe('none');
+  });
+
+  it('never takes a card token back once its card has ended', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.confirmCard();
+    sim.state = afterPush(
+      sim.state,
+      { token: 'card-1', event: 'end', props: sim.state.lastProps! },
+      'delivered',
+    );
+    expect(receiveCardTokens(sim.state, ['card-1']).pushes).toEqual([]);
+  });
+
+  it('remembers only the last few ended cards', () => {
+    let state = initialActivityState();
+    for (let card = 0; card < ACTIVITY_RULES.rememberedEndedCards + 5; card += 1) {
+      state = receiveCardTokens(state, [`card-${card}`]).state;
+      state = afterPush(
+        state,
+        { token: `card-${card}`, event: 'end', props: { flight: 'X', route: null, stage: 'passed' } },
+        'delivered',
+      );
+    }
+    expect(state.endedTokens).toHaveLength(ACTIVITY_RULES.rememberedEndedCards);
+    expect(state.cardTokens).toEqual([]);
+  });
+
+  it('drops a card token Apple reports as invalid', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.confirmCard();
+    sim.state = afterPush(
+      sim.state,
+      { token: 'card-1', event: 'update', props: sim.state.lastProps! },
+      'token-invalid',
+    );
+    expect(sim.state.cardTokens).toEqual([]);
+  });
+
+  it('takes back a start that Apple did not accept, so it does not count', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.state = afterPush(
+      sim.state,
+      { token: 'start', event: 'start', props: sim.state.lastProps! },
+      'failed',
+    );
+    expect(sim.state.showing).toBeUndefined();
+    expect(sim.state.recentStarts).toEqual([]);
   });
 });

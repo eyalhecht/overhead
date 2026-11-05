@@ -39,11 +39,12 @@ describe('watcher', () => {
 
     expect(push.sent.map(({ token, event, props }) => `${event}:${token}:${props.stage}`)).toEqual([
       'start:start-token:approaching',
+      'update:card-1:approaching',
       'update:card-1:overhead',
       'update:card-1:passed',
       'end:card-1:passed',
     ]);
-    expect(user.activityTokens.size).toBe(0);
+    expect(user.activity.cardTokens).toEqual([]);
   });
 
   it('shows planes without a known route', async () => {
@@ -82,6 +83,7 @@ describe('watcher', () => {
     expect(push.sent.map(({ event, token }) => `${event}:${token}`)).toEqual([
       'start:start-token',
       'start:start-token',
+      'update:card-1',
       'update:card-1',
     ]);
     expect(user.activity.pausedUntil).toBeUndefined();

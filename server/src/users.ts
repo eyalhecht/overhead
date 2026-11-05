@@ -7,8 +7,6 @@ export interface User {
   deviceId: string;
   location: GeoPoint;
   startToken?: string;
-  activityTokens: Set<string>;
-  endedTokens: Set<string>;
   quietHours: [number, number] | null;
   utcOffsetMinutes: number;
   activity: ActivityState;
@@ -44,8 +42,6 @@ export function createUserStore(maxUsers = 100): UserStore {
         ? Object.assign(existing, profile)
         : {
             deviceId: request.deviceId,
-            activityTokens: new Set(),
-            endedTokens: new Set(),
             activity: initialActivityState(),
             ...profile,
           };
