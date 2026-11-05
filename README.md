@@ -18,7 +18,7 @@ flowchart LR
   APNs[Apple Push]
 
   App -- check-in --> Server
-  Server -- planes --> App
+  Server -- sky snapshot --> App
   Positions --> Server
   Routes --> Server
   Server -- start / update / end --> APNs --> Card

@@ -19,6 +19,7 @@ export interface Watcher {
   stop(): void;
   tick(): Promise<void>;
   reportActivityTokens(user: User, tokens: string[]): Promise<void>;
+  planesFor(user: User): NearbyPlane[];
 }
 
 export function createWatcher({
@@ -30,6 +31,7 @@ export function createWatcher({
 }: WatcherDependencies): Watcher {
   let timer: NodeJS.Timeout | undefined;
   let running = false;
+  const planesSeen = new WeakMap<User, NearbyPlane[]>();
 
   async function tick(): Promise<void> {
     for (const user of users.all()) {
@@ -43,6 +45,7 @@ export function createWatcher({
 
   async function watch(user: User): Promise<void> {
     const planes = isQuietTime(user, now()) ? [] : await planesAbove(user, demoLocation ?? user.location);
+    planesSeen.set(user, planes);
     const { action, state } = nextStep(user.activity, {
       planes,
       now: now(),
@@ -98,5 +101,6 @@ export function createWatcher({
     },
     tick,
     reportActivityTokens,
+    planesFor: (user) => planesSeen.get(user) ?? [],
   };
 }

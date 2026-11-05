@@ -33,16 +33,13 @@ function simulateCardOpened(): void {
   if (dryRunUser) void watcher.reportActivityTokens(dryRunUser, [`dry-run-card-${Date.now()}`]);
 }
 
-createApp({ appKey: config.appKey, users, sky, watcher, demoLocation: config.demoLocation }).listen(
-  config.port,
-  () => {
-    const mode = config.apns ? 'pushing to Apple' : 'dry run';
-    const watching = config.demoLocation
-      ? `demo spot ${config.demoLocation.lat},${config.demoLocation.lon}`
-      : 'phone locations';
-    console.log(`Overhead server on :${config.port}, ${mode}, watching ${watching}`);
-  },
-);
+createApp({ appKey: config.appKey, users, watcher }).listen(config.port, () => {
+  const mode = config.apns ? 'pushing to Apple' : 'dry run';
+  const watching = config.demoLocation
+    ? `demo spot ${config.demoLocation.lat},${config.demoLocation.lon}`
+    : 'phone locations';
+  console.log(`Overhead server on :${config.port}, ${mode}, watching ${watching}`);
+});
 watcher.start();
 
 process.once('SIGTERM', () => {

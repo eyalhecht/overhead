@@ -18,13 +18,13 @@ describe('API', () => {
     sky = new FakeSky();
     users = createUserStore();
     watcher = createWatcher({ users, sky, push: new FakePush() });
-    app = createApp({ appKey: APP_KEY, users, sky, watcher });
+    app = createApp({ appKey: APP_KEY, users, watcher });
   });
 
   const authorized = (req: request.Test) => req.set('x-app-key', APP_KEY);
 
   it('rejects requests without the app key', async () => {
-    await request(app).get('/planes?lat=52.5&lon=13.4').expect(401);
+    await request(app).get('/sky?deviceId=phone-1').expect(401);
   });
 
   it('registers a phone', async () => {
@@ -55,16 +55,6 @@ describe('API', () => {
     await authorized(request(app).post('/register'))
       .send({ ...registerRequest(), padding: 'x'.repeat(5000) })
       .expect(413);
-  });
-
-  it('returns the planes above a point', async () => {
-    sky.planes = [nearbyPlane('BAW1')];
-    const response = await authorized(request(app).get('/planes?lat=52.5&lon=13.4')).expect(200);
-    expect(response.body).toEqual([nearbyPlane('BAW1')]);
-  });
-
-  it('rejects impossible coordinates', async () => {
-    await authorized(request(app).get('/planes?lat=999&lon=13.4')).expect(400);
   });
 
   it('accepts a check-in with real-length iOS push tokens', async () => {
@@ -105,7 +95,6 @@ describe('API', () => {
     const fullApp = createApp({
       appKey: APP_KEY,
       users: full,
-      sky,
       watcher: createWatcher({ users: full, sky, push: new FakePush() }),
     });
     await authorized(request(fullApp).post('/register'))
@@ -125,8 +114,8 @@ describe('API', () => {
   });
 
   it('rejects an app key that is only partly right', async () => {
-    await request(app).get('/planes?lat=52.5&lon=13.4').set('x-app-key', 'test-ke').expect(401);
-    await request(app).get('/planes?lat=52.5&lon=13.4').set('x-app-key', 'test-kez').expect(401);
+    await request(app).get('/sky?deviceId=phone-1').set('x-app-key', 'test-ke').expect(401);
+    await request(app).get('/sky?deviceId=phone-1').set('x-app-key', 'test-kez').expect(401);
   });
 
   it('rejects a token that could smuggle a path into the request to Apple', async () => {
@@ -135,44 +124,43 @@ describe('API', () => {
       .expect(400);
   });
 
-  describe('the card a phone is showing', () => {
-    const cardOf = (deviceId: string) => authorized(request(app).get(`/card?deviceId=${deviceId}`));
+  describe('the sky a phone sees', () => {
+    const skyOf = (deviceId: string) => authorized(request(app).get(`/sky?deviceId=${deviceId}`));
+    const checkIn = () => authorized(request(app).post('/register')).send(registerRequest()).expect(204);
 
-    it('matches the Live Activity, so the app can show the same plane', async () => {
-      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
-      sky.planes = [nearbyPlane('ISR053', { airline: 'Israir', stage: 'approaching' })];
+    it('gives the planes and the card from the same check, so the map and the card agree', async () => {
+      await checkIn();
+      sky.planes = [
+        nearbyPlane('ISR053', { airline: 'Israir', stage: 'approaching' }),
+        nearbyPlane('BAW1', { stage: 'inbound' }),
+      ];
       await watcher.tick();
 
-      const response = await cardOf('phone-1').expect(200);
+      const { body } = await skyOf('phone-1').expect(200);
 
-      expect(response.body).toMatchObject({ flight: 'ISR053', airline: 'Israir', stage: 'approaching' });
+      expect(body.card).toMatchObject({ flight: 'ISR053', airline: 'Israir', stage: 'approaching' });
+      expect(body.planes.map((plane: { flight: string }) => plane.flight)).toEqual(['ISR053', 'BAW1']);
     });
 
     it('still shows the plane as Passed while the card says so', async () => {
-      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
+      await checkIn();
       sky.planes = [nearbyPlane('ISR053')];
       await watcher.tick();
       sky.planes = [];
       await watcher.tick();
 
-      const response = await cardOf('phone-1').expect(200);
+      const { body } = await skyOf('phone-1').expect(200);
 
-      expect(response.body).toMatchObject({ flight: 'ISR053', stage: 'passed' });
-    });
-
-    it('is empty when the phone shows no card', async () => {
-      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
-      const response = await cardOf('phone-1').expect(200);
-      expect(response.body).toBeNull();
+      expect(body).toMatchObject({ planes: [], card: { flight: 'ISR053', stage: 'passed' } });
     });
 
     it('is empty for a phone the server does not know yet', async () => {
-      const response = await cardOf('never-registered').expect(200);
-      expect(response.body).toBeNull();
+      const { body } = await skyOf('never-registered').expect(200);
+      expect(body).toEqual({ planes: [], card: null });
     });
 
     it('needs a device id', async () => {
-      await authorized(request(app).get('/card')).expect(400);
+      await authorized(request(app).get('/sky')).expect(400);
     });
   });
 });
