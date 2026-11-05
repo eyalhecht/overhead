@@ -1,5 +1,5 @@
-import type { GeoPoint, RegisterRequest, SkySnapshot } from '@overhead/shared';
-import { LOCATION_DECIMALS } from '@overhead/shared/rules';
+import type { RegisterRequest, SkySnapshot } from '@overhead/shared';
+import { roughLocation } from '@overhead/shared/rules';
 
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL ?? 'http://localhost:8080';
 const APP_KEY = process.env.EXPO_PUBLIC_APP_KEY ?? '';
@@ -14,14 +14,10 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
 }
 
 export async function register(body: RegisterRequest): Promise<void> {
-  await request('/register', { method: 'POST', body: JSON.stringify({ ...body, ...rough(body) }) });
+  await request('/register', { method: 'POST', body: JSON.stringify({ ...body, ...roughLocation(body) }) });
 }
 
 export async function fetchSky(deviceId: string): Promise<SkySnapshot> {
   const response = await request(`/sky?deviceId=${encodeURIComponent(deviceId)}`);
   return (await response.json()) as SkySnapshot;
-}
-
-function rough({ lat, lon }: GeoPoint): GeoPoint {
-  return { lat: Number(lat.toFixed(LOCATION_DECIMALS)), lon: Number(lon.toFixed(LOCATION_DECIMALS)) };
 }
