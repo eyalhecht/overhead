@@ -13,6 +13,7 @@ rm -f "$ARCHIVE"
 
 gcloud compute ssh "$VM" --project "$PROJECT" --zone "$ZONE" --quiet --command "
   set -euo pipefail
+  command -v make >/dev/null || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq build-essential
   sudo install -d -o overhead -g overhead -m 700 /opt/overhead/data
   sudo install -d /etc/systemd/journald.conf.d
   printf '[Journal]\nMaxRetentionSec=14day\n' | sudo tee /etc/systemd/journald.conf.d/overhead.conf >/dev/null
