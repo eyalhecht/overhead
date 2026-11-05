@@ -38,7 +38,7 @@ export default function HomeScreen() {
       </View>
 
       {card ? (
-        <FlightCard card={card} plane={cardPlane} />
+        <FlightCard card={card} plane={cardPlane} heading={heading} />
       ) : permission === 'denied' ? (
         <Card style={styles.message}>
           <View style={styles.messageIcon}>

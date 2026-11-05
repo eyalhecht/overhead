@@ -1,3 +1,4 @@
+import { clockTime, QUIET_HOURS } from '@overhead/shared/rules';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
@@ -12,7 +13,11 @@ const OPTIONS: { key: keyof Settings; label: string; help: string }[] = [
     label: 'Show on Lock Screen',
     help: 'A card when a plane passes over you',
   },
-  { key: 'quietHours', label: 'Quiet hours', help: '22:00 to 07:00, no cards while you sleep' },
+  {
+    key: 'quietHours',
+    label: 'Quiet hours',
+    help: `${QUIET_HOURS.map(clockTime).join(' to ')}, no cards while you sleep`,
+  },
 ];
 
 export default function SettingsScreen() {

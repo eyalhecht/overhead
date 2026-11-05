@@ -1,17 +1,14 @@
-import { CardQuerySchema, PlanesQuerySchema, RegisterRequestSchema, type GeoPoint } from '@overhead/shared';
+import { RegisterRequestSchema, SkyQuerySchema, type SkySnapshot } from '@overhead/shared';
 import { Router } from 'express';
 import type { Watcher } from '../activity/watcher.js';
-import type { Sky } from '../flights/sky.js';
 import { userLabel, type UserStore } from '../users.js';
 
 export interface RouterDependencies {
   users: UserStore;
-  sky: Sky;
   watcher: Watcher;
-  demoLocation?: GeoPoint;
 }
 
-export function createRouter({ users, sky, watcher, demoLocation }: RouterDependencies): Router {
+export function createRouter({ users, watcher }: RouterDependencies): Router {
   const router = Router();
 
   router.post('/register', async (req, res) => {
@@ -23,14 +20,14 @@ export function createRouter({ users, sky, watcher, demoLocation }: RouterDepend
     res.status(204).end();
   });
 
-  router.get('/planes', async (req, res) => {
-    const { lat, lon } = PlanesQuerySchema.parse(req.query);
-    res.json(await sky.planesAbove(demoLocation ?? { lat, lon }));
-  });
-
-  router.get('/card', (req, res) => {
-    const { deviceId } = CardQuerySchema.parse(req.query);
-    res.json(users.find(deviceId)?.activity.showing?.props ?? null);
+  router.get('/sky', (req, res) => {
+    const { deviceId } = SkyQuerySchema.parse(req.query);
+    const user = users.find(deviceId);
+    const snapshot: SkySnapshot = {
+      planes: user ? watcher.planesFor(user) : [],
+      card: user?.activity.showing?.props ?? null,
+    };
+    res.json(snapshot);
   });
 
   return router;

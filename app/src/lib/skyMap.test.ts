@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import type { NearbyPlane } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import { KM_PER_NM } from './format';
-import { MAP, northLabelPosition, placePlane, PLANE_ICON, ringStepKm, zoomFor } from './skyMap';
+import { PLANE_ICON } from './planeIcon';
+import { MAP, northLabelPosition, placePlane, ringStepKm, zoomFor } from './skyMap';
 
 const plane = (overrides: Partial<NearbyPlane>): NearbyPlane => ({
   id: 'abc',

@@ -5,3 +5,5 @@ dist/
 ios/
 android/
 *.tsbuildinfo
+*.db
+*.db-journal

@@ -1,11 +1,10 @@
-import type { ActivityProps, GeoPoint, NearbyPlane } from '@overhead/shared';
+import type { GeoPoint, NearbyPlane } from '@overhead/shared';
 import type { Sky } from '../flights/sky.js';
-import type { LiveActivityEvent, PushClient } from '../push/apns.js';
+import type { PushClient } from '../push/apns.js';
 import { isQuietTime, userLabel, type User, type UserStore } from '../users.js';
-import { acknowledgeActivityToken, nextStep, type Action } from './policy.js';
+import { afterPush, nextStep, pushesFor, receiveCardTokens, type Push } from './policy.js';
 
 const TICK_INTERVAL_MS = 5000;
-const EMPTY_CARD: ActivityProps = { flight: '', route: null, stage: 'passed' };
 
 export interface WatcherDependencies {
   users: UserStore;
@@ -20,17 +19,19 @@ export interface Watcher {
   stop(): void;
   tick(): Promise<void>;
   reportActivityTokens(user: User, tokens: string[]): Promise<void>;
+  planesFor(user: User): NearbyPlane[];
 }
 
 export function createWatcher({
   users,
   sky,
-  push,
+  push: pushClient,
   now = Date.now,
   demoLocation,
 }: WatcherDependencies): Watcher {
   let timer: NodeJS.Timeout | undefined;
   let running = false;
+  const planesSeen = new WeakMap<User, NearbyPlane[]>();
 
   async function tick(): Promise<void> {
     for (const user of users.all()) {
@@ -44,28 +45,28 @@ export function createWatcher({
 
   async function watch(user: User): Promise<void> {
     const planes = isQuietTime(user, now()) ? [] : await planesAbove(user, demoLocation ?? user.location);
-    const previous = user.activity;
-    const { action, state } = nextStep(previous, {
+    planesSeen.set(user, planes);
+    const { action, state } = nextStep(user.activity, {
       planes,
       now: now(),
       canStart: user.startToken !== undefined,
-      hasActivityToken: user.activityTokens.size > 0,
     });
     user.activity = state;
-    if (action.type === 'start') {
-      if (!(await startCard(user, action.props))) user.activity = previous;
-      return;
-    }
-    await perform(user, action);
+    if (action.type === 'back-off')
+      console.warn(`${userLabel(user)} card never confirmed, pausing new cards`);
+    await send(user, pushesFor(action, state, user.startToken));
+    users.save(user);
   }
 
-  async function startCard(user: User, props: ActivityProps): Promise<boolean> {
-    if (!user.startToken) return false;
-    const result = await push.send(user.startToken, 'start', props);
-    if (result === 'token-invalid') user.startToken = undefined;
-    if (result === 'delivered')
-      console.log(`${userLabel(user)} card started: ${props.flight} ${props.stage}`);
-    return result === 'delivered';
+  async function send(user: User, pushes: Push[]): Promise<void> {
+    for (const push of pushes) {
+      const result = await pushClient.send(push.token, push.event, push.props);
+      user.activity = afterPush(user.activity, push, result);
+      if (push.event === 'start' && result === 'token-invalid') user.startToken = undefined;
+      if (push.event === 'start' && result === 'delivered') {
+        console.log(`${userLabel(user)} card started: ${push.props.flight} ${push.props.stage}`);
+      }
+    }
   }
 
   function planesAbove(user: User, point: GeoPoint): Promise<NearbyPlane[]> {
@@ -75,43 +76,11 @@ export function createWatcher({
     });
   }
 
-  async function perform(user: User, action: Exclude<Action, { type: 'start' }>): Promise<void> {
-    switch (action.type) {
-      case 'update':
-        return sendToActivities(user, 'update', action.props, [...user.activityTokens]);
-      case 'end':
-        return sendToActivities(user, 'end', action.props, [...user.activityTokens]);
-      case 'back-off':
-        console.warn(`${userLabel(user)} card never confirmed, pausing new cards`);
-        return;
-      case 'none':
-        return;
-    }
-  }
-
-  async function sendToActivities(
-    user: User,
-    event: LiveActivityEvent,
-    props: ActivityProps,
-    tokens: string[],
-  ): Promise<void> {
-    for (const token of tokens) {
-      const result = await push.send(token, event, props);
-      if (event === 'end' || result === 'token-invalid') user.activityTokens.delete(token);
-      if (event === 'end') user.endedTokens.add(token);
-    }
-  }
-
   async function reportActivityTokens(user: User, tokens: string[]): Promise<void> {
-    const unseen = tokens.filter((token) => !user.activityTokens.has(token) && !user.endedTokens.has(token));
-    if (unseen.length === 0) return;
-
-    if (user.activity.showing) {
-      unseen.forEach((token) => user.activityTokens.add(token));
-      user.activity = acknowledgeActivityToken(user.activity);
-      return;
-    }
-    await sendToActivities(user, 'end', user.activity.lastProps ?? EMPTY_CARD, unseen);
+    const { state, pushes } = receiveCardTokens(user.activity, tokens);
+    user.activity = state;
+    await send(user, pushes);
+    users.save(user);
   }
 
   function schedule(): void {
@@ -132,5 +101,6 @@ export function createWatcher({
     },
     tick,
     reportActivityTokens,
+    planesFor: (user) => planesSeen.get(user) ?? [],
   };
 }

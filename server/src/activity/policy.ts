@@ -1,4 +1,5 @@
-import type { ActivityProps, CardStage, NearbyPlane } from '@overhead/shared';
+import { isOnCard, type ActivityProps, type NearbyPlane } from '@overhead/shared';
+import type { LiveActivityEvent, PushResult } from '../push/apns.js';
 
 export const ACTIVITY_RULES = {
   keepAliveMs: 30_000,
@@ -8,11 +9,11 @@ export const ACTIVITY_RULES = {
   maxStartsPerHour: 10,
   tokenWaitMs: 60_000,
   backoffMs: 15 * 60_000,
+  rememberedEndedCards: 20,
 } as const;
 
 const HOUR_MS = 60 * 60_000;
-
-type CardPlane = NearbyPlane & { stage: Exclude<CardStage, 'passed'> };
+const EMPTY_CARD: ActivityProps = { flight: '', route: null, stage: 'passed' };
 
 export interface ShowingCard {
   props: ActivityProps;
@@ -28,6 +29,14 @@ export interface ActivityState {
   goneSince?: number;
   recentStarts: number[];
   pausedUntil?: number;
+  cardTokens: string[];
+  endedTokens: string[];
+}
+
+export interface Push {
+  token: string;
+  event: LiveActivityEvent;
+  props: ActivityProps;
 }
 
 export type Action =
@@ -41,7 +50,6 @@ export interface StepInput {
   planes: NearbyPlane[];
   now: number;
   canStart: boolean;
-  hasActivityToken: boolean;
 }
 
 export interface StepResult {
@@ -49,15 +57,17 @@ export interface StepResult {
   state: ActivityState;
 }
 
-export const initialActivityState = (): ActivityState => ({ recentStarts: [], overheadSince: {} });
+export const initialActivityState = (): ActivityState => ({
+  recentStarts: [],
+  overheadSince: {},
+  cardTokens: [],
+  endedTokens: [],
+});
 
-export function nextStep(
-  state: ActivityState,
-  { planes, now, canStart, hasActivityToken }: StepInput,
-): StepResult {
+export function nextStep(state: ActivityState, { planes, now, canStart }: StepInput): StepResult {
   const { showing } = state;
 
-  if (isStartDropped(showing, hasActivityToken, now)) {
+  if (isStartDropped(showing, state.cardTokens.length > 0, now)) {
     return {
       action: { type: 'back-off' },
       state: { ...state, showing: undefined, pausedUntil: now + ACTIVITY_RULES.backoffMs },
@@ -71,6 +81,7 @@ export function nextStep(
   const nextPlaneOnItsWay = passing.some((plane) => plane.stage === 'inbound');
 
   if (!showing) {
+    if (state.cardTokens.length > 0) return endLeftoverCards(next);
     if (!main || !canStart || !mayStart(state, now)) return none(next);
     return start(next, cardProps(main), now);
   }
@@ -87,9 +98,65 @@ export function nextStep(
   return update(inSight, showing, props, now);
 }
 
-export function acknowledgeActivityToken(state: ActivityState): ActivityState {
-  if (!state.showing) return state;
-  return { ...state, showing: { ...state.showing, awaitingTokenSince: undefined } };
+export function pushesFor(action: Action, state: ActivityState, startToken?: string): Push[] {
+  switch (action.type) {
+    case 'start':
+      return startToken ? [{ token: startToken, event: 'start', props: action.props }] : [];
+    case 'update':
+    case 'end':
+      return state.cardTokens.map((token) => ({ token, event: action.type, props: action.props }));
+    default:
+      return [];
+  }
+}
+
+export function receiveCardTokens(
+  state: ActivityState,
+  tokens: string[],
+): { state: ActivityState; pushes: Push[] } {
+  const unseen = tokens.filter(
+    (token) => !state.cardTokens.includes(token) && !state.endedTokens.includes(token),
+  );
+  if (unseen.length === 0) return { state, pushes: [] };
+
+  const { showing } = state;
+  const cardTokens = [...state.cardTokens, ...unseen];
+  if (!showing) {
+    const props = state.lastProps ?? EMPTY_CARD;
+    return {
+      state: { ...state, cardTokens },
+      pushes: unseen.map((token) => ({ token, event: 'end', props })),
+    };
+  }
+  return {
+    state: { ...state, cardTokens, showing: { ...showing, awaitingTokenSince: undefined } },
+    pushes: unseen.map((token) => ({ token, event: 'update', props: showing.props })),
+  };
+}
+
+export function afterPush(state: ActivityState, { token, event }: Push, result: PushResult): ActivityState {
+  if (event === 'start') return result === 'delivered' ? state : forgetStart(state);
+  if (result === 'token-invalid') return { ...state, cardTokens: without(state.cardTokens, token) };
+  if (event === 'end' && result === 'delivered') {
+    return {
+      ...state,
+      cardTokens: without(state.cardTokens, token),
+      endedTokens: [...state.endedTokens, token].slice(-ACTIVITY_RULES.rememberedEndedCards),
+    };
+  }
+  return state;
+}
+
+function forgetStart(state: ActivityState): ActivityState {
+  return { ...state, showing: undefined, recentStarts: state.recentStarts.slice(0, -1) };
+}
+
+function endLeftoverCards(state: ActivityState): StepResult {
+  return { action: { type: 'end', props: state.lastProps ?? EMPTY_CARD }, state };
+}
+
+function without(tokens: string[], token: string): string[] {
+  return tokens.filter((candidate) => candidate !== token);
 }
 
 function wrapUp(
@@ -164,10 +231,6 @@ function trackOverhead(
   return Object.fromEntries(planes.map(({ flight }) => [flight, previous[flight] ?? now]));
 }
 
-function isOnCard(plane: NearbyPlane): plane is CardPlane {
-  return plane.stage !== 'inbound';
-}
-
 function isCircling(overheadSince: Record<string, number>, plane: NearbyPlane, now: number): boolean {
   return now - (overheadSince[plane.flight] ?? now) > ACTIVITY_RULES.circlingLimitMs;
 }
@@ -176,7 +239,7 @@ function sameCard(a: ActivityProps, b: ActivityProps): boolean {
   return a.flight === b.flight && a.stage === b.stage;
 }
 
-function cardProps(plane: CardPlane): ActivityProps {
+function cardProps(plane: NearbyPlane & { stage: 'approaching' | 'overhead' }): ActivityProps {
   return {
     flight: plane.flight,
     airline: plane.airline,

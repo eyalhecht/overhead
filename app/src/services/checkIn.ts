@@ -4,17 +4,17 @@ import { getIosIdForVendorAsync } from 'expo-application';
 import { addPushToStartTokenListener } from 'expo-widgets';
 import OverheadActivity from '@/live-activity/OverheadActivity';
 import { register } from './api';
-import { loadSettings, onSettingsChange, QUIET_HOURS } from './settings';
+import { QUIET_HOURS, roughLocation } from '@overhead/shared/rules';
+import { cardsTooOld, isCheckInDue, type LastReport } from '@/lib/checkInSchedule';
+import { loadSettings, onSettingsChange } from './settings';
 
 const LOCATION_STORAGE_KEY = 'lastLocation';
 const MAINTENANCE_INTERVAL_MS = 5000;
-const MAX_SILENCE_MS = 60_000;
-const MAX_CARD_AGE_MS = 30 * 60_000;
 
 let startToken: string | undefined;
 let lastLocation: GeoPoint | undefined;
-let lastReport = { activityTokens: '', at: 0 };
-const cardFirstSeen = new Map<string, number>();
+let lastReport: LastReport = { activityTokens: '', at: 0 };
+let cardFirstSeen = new Map<string, number>();
 
 export async function checkIn(location?: GeoPoint): Promise<void> {
   if (location) await rememberLocation(location);
@@ -50,9 +50,7 @@ export function startCheckInService(): void {
 
 async function maintain(): Promise<void> {
   closeOldCards();
-  const activityTokens = (await openCardTokens()).join();
-  const tokensChanged = activityTokens !== '' && activityTokens !== lastReport.activityTokens;
-  if (tokensChanged || Date.now() - lastReport.at > MAX_SILENCE_MS) await safeCheckIn();
+  if (isCheckInDue(lastReport, await openCardTokens(), Date.now())) await safeCheckIn();
 }
 
 async function safeCheckIn(): Promise<void> {
@@ -71,16 +69,21 @@ async function openCardTokens(): Promise<string[]> {
 }
 
 function closeOldCards(): void {
-  for (const card of OverheadActivity.getInstances()) {
-    const firstSeen = cardFirstSeen.get(card.getId()) ?? Date.now();
-    cardFirstSeen.set(card.getId(), firstSeen);
-    if (Date.now() - firstSeen > MAX_CARD_AGE_MS) void card.end('immediate').catch(() => undefined);
+  const cards = OverheadActivity.getInstances();
+  const { firstSeen, tooOld } = cardsTooOld(
+    cardFirstSeen,
+    cards.map((card) => card.getId()),
+    Date.now(),
+  );
+  cardFirstSeen = firstSeen;
+  for (const card of cards) {
+    if (tooOld.includes(card.getId())) void card.end('immediate').catch(() => undefined);
   }
 }
 
 async function rememberLocation(location: GeoPoint): Promise<void> {
-  lastLocation = location;
-  await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(location));
+  lastLocation = roughLocation(location);
+  await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(lastLocation));
 }
 
 async function storedLocation(): Promise<GeoPoint | undefined> {

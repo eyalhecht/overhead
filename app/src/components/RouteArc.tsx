@@ -1,7 +1,7 @@
 import type { CardStage } from '@overhead/shared';
 import Svg, { G, Path, Polyline } from 'react-native-svg';
 import { arcPath, pointOnArc, ROUTE_PROGRESS } from '@/lib/routeArc';
-import { PLANE_ICON } from '@/lib/skyMap';
+import { PLANE_ICON } from '@/lib/planeIcon';
 import { useColors } from '@/lib/theme';
 
 const ARC = { width: 300, rise: 40 };

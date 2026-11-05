@@ -55,11 +55,12 @@ export const RegisterRequestSchema = z.object({
 
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 
-export const PlanesQuerySchema = z.object({
-  lat: z.coerce.number().pipe(latitude),
-  lon: z.coerce.number().pipe(longitude),
-});
+export const SkyQuerySchema = z.object({ deviceId });
 
-export type PlanesQuery = z.infer<typeof PlanesQuerySchema>;
+export interface SkySnapshot {
+  planes: NearbyPlane[];
+  card: ActivityProps | null;
+}
 
-export const CardQuerySchema = z.object({ deviceId });
+export * from './cardText.js';
+export * from './rules.js';

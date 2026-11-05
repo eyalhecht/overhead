@@ -4,11 +4,20 @@ import Svg, { Path } from 'react-native-svg';
 import { Card } from '@/components/Card';
 import { LookUpRow } from '@/components/LookUpRow';
 import { RouteArc } from '@/components/RouteArc';
-import { cardDetails, cardTitle, describeStage, formatAltitude, formatDistance } from '@/lib/format';
-import { PLANE_ICON } from '@/lib/skyMap';
+import { cardText } from '@overhead/shared/cardText';
+import { formatAltitude, formatDistance } from '@/lib/format';
+import { PLANE_ICON } from '@/lib/planeIcon';
 import { themedStyles, useColors } from '@/lib/theme';
 
-export function FlightCard({ card, plane }: { card: ActivityProps; plane?: NearbyPlane }) {
+export function FlightCard({
+  card,
+  plane,
+  heading,
+}: {
+  card: ActivityProps;
+  plane?: NearbyPlane;
+  heading: number;
+}) {
   const styles = useStyles();
   const position = plane && [`${formatDistance(plane.distanceNm)} away`, formatAltitude(plane.altitudeFt)];
 
@@ -18,7 +27,7 @@ export function FlightCard({ card, plane }: { card: ActivityProps; plane?: Nearb
       {plane && card.stage !== 'passed' && (
         <>
           <View style={styles.divider} />
-          <LookUpRow plane={plane} />
+          <LookUpRow plane={plane} heading={heading} />
         </>
       )}
     </Card>
@@ -35,6 +44,7 @@ export function FlightSummary({ card, label, extraDetails = [] }: FlightSummaryP
   const styles = useStyles();
   const colors = useColors();
   const statusColor = card.stage === 'passed' ? colors.textSecondary : colors.accent;
+  const text = cardText(card);
 
   return (
     <View style={styles.summary}>
@@ -48,7 +58,7 @@ export function FlightSummary({ card, label, extraDetails = [] }: FlightSummaryP
           >
             <Path d={PLANE_ICON.path} fill={statusColor} />
           </Svg>
-          <Text style={[styles.statusText, { color: statusColor }]}>{describeStage(card.stage)}</Text>
+          <Text style={[styles.statusText, { color: statusColor }]}>{text.status}</Text>
         </View>
         <Text style={styles.details}>{label ?? card.flight}</Text>
       </View>
@@ -58,10 +68,10 @@ export function FlightSummary({ card, label, extraDetails = [] }: FlightSummaryP
           <Airport code={card.route.to} city={card.route.toCity} alignEnd />
         </View>
       ) : (
-        <Text style={styles.unknownRoute}>{cardTitle(card)}</Text>
+        <Text style={styles.unknownRoute}>{text.title}</Text>
       )}
       <RouteArc stage={card.stage} />
-      <Text style={styles.details}>{[cardDetails(card), ...extraDetails].join(' · ')}</Text>
+      <Text style={styles.details}>{[text.details, ...extraDetails].join(' · ')}</Text>
     </View>
   );
 }

@@ -1,15 +1,24 @@
-import type { NearbyPlane, PassStage, RegisterRequest } from '@overhead/shared';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { CARD_MAX_AGE_MS, type NearbyPlane, type PassStage, type RegisterRequest } from '@overhead/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACTIVITY_RULES } from '../src/activity/policy.js';
 import { createWatcher, type Watcher } from '../src/activity/watcher.js';
 import { pushPriority } from '../src/push/apns.js';
-import { createUserStore, type User, type UserStore } from '../src/users.js';
+import {
+  createUserStore,
+  memoryStorage,
+  sqliteStorage,
+  type User,
+  type UserStorage,
+  type UserStore,
+} from '../src/users.js';
 import { FakePush, FakeSky, nearbyPlane, registerRequest } from './fakes.js';
 
 const TICK_MS = 5000;
 const MINUTE_MS = 60_000;
 const IOS_URGENT_PUSHES_PER_HOUR = 12;
-const APP_CLOSES_CARDS_AFTER_MS = 30 * MINUTE_MS;
 
 const TEL_AVIV = { lat: 32.081, lon: 34.814 };
 const BERLIN = { lat: 52.52, lon: 13.405 };
@@ -18,18 +27,28 @@ class World {
   now = Date.UTC(2026, 10, 1, 12);
   readonly sky = new FakeSky();
   readonly push = new FakePush();
-  users: UserStore = createUserStore();
-  watcher: Watcher = this.createWatcher();
+  users: UserStore;
+  watcher: Watcher;
   readonly sentAt: number[] = [];
   private cardsIssued = 0;
+
+  constructor(private readonly storage: () => UserStorage = memoryStorage) {
+    this.users = this.openUsers();
+    this.watcher = this.createWatcher();
+  }
 
   join(overrides: Partial<RegisterRequest> = {}): User {
     return this.users.upsert(registerRequest(overrides));
   }
 
   restartServer(): void {
-    this.users = createUserStore();
+    this.users.close();
+    this.users = this.openUsers();
     this.watcher = this.createWatcher();
+  }
+
+  private openUsers(): UserStore {
+    return createUserStore({ storage: this.storage(), now: () => this.now });
   }
 
   async run(durationMs: number, planesAt?: (elapsedMs: number) => NearbyPlane[]): Promise<void> {
@@ -154,7 +173,7 @@ describe('real-world situations', () => {
     const user = world.join();
     await world.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 90));
 
-    world.join({ startToken: undefined, activityTokens: [...user.activityTokens] });
+    world.join({ startToken: undefined, activityTokens: [...user.activity.cardTokens] });
     await world.run(
       10 * MINUTE_MS,
       together(passing('ELY001', -UNTIL_OVERHEAD_MS, 90), passing('WZZ63', 5 * MINUTE_MS, 90)),
@@ -173,6 +192,22 @@ describe('real-world situations', () => {
     await world.watcher.reportActivityTokens(user, ['card-1']);
 
     expect(world.pushes('end')).toMatchObject([{ token: 'card-1' }]);
+  });
+
+  it('keeps a card going through a server restart when users are saved', async () => {
+    const folder = mkdtempSync(join(tmpdir(), 'overhead-world-'));
+    const saved = new World(() => sqliteStorage(join(folder, 'overhead.db')));
+    saved.join();
+    await saved.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 600));
+    const sentBeforeRestart = saved.pushes().length;
+
+    saved.restartServer();
+    await saved.run(TICK_MS * 8, passing('ELY001', 0, 600));
+    saved.users.close();
+    rmSync(folder, { recursive: true, force: true });
+
+    expect(saved.pushes('start')).toHaveLength(1);
+    expect(saved.pushes().slice(sentBeforeRestart)).toMatchObject([{ event: 'update', token: 'card-1' }]);
   });
 
   it('follows the user when they drive somewhere else', async () => {
@@ -251,7 +286,7 @@ describe('real-world situations', () => {
       const ends = world.pushes('end');
       starts.forEach((start, index) => {
         const closedAt = ends[index]?.at ?? world.now;
-        expect(closedAt - start.at).toBeLessThan(APP_CLOSES_CARDS_AFTER_MS);
+        expect(closedAt - start.at).toBeLessThan(CARD_MAX_AGE_MS);
       });
     });
   });
@@ -283,7 +318,7 @@ describe('real-world situations', () => {
       expect(world.pushes('start').length).toBeLessThanOrEqual(flights.length);
       expect(world.pushes('end')).toHaveLength(world.pushes('start').length);
       expect(user.activity.pausedUntil).toBeUndefined();
-      expect(user.activityTokens.size).toBe(0);
+      expect(user.activity.cardTokens).toEqual([]);
     });
 
     it('still shows the first plane when its push hits a dropped connection', async () => {

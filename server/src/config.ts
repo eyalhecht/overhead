@@ -16,6 +16,7 @@ const EnvSchema = z.object({
   APNS_TEAM_ID: optionalString,
   APNS_BUNDLE_ID: optionalString,
   APNS_HOST: z.string().default('api.push.apple.com'),
+  DATABASE_PATH: optionalString,
   DEMO_LAT: optionalNumber.pipe(z.number().min(-90).max(90).optional()),
   DEMO_LON: optionalNumber.pipe(z.number().min(-180).max(180).optional()),
 });
@@ -32,6 +33,7 @@ export interface Config {
   port: number;
   appKey?: string;
   fr24Token?: string;
+  databasePath?: string;
   apns?: ApnsConfig;
   demoLocation?: { lat: number; lon: number };
 }
@@ -42,6 +44,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: parsed.PORT,
     appKey: parsed.APP_KEY,
     fr24Token: parsed.FR24_TOKEN,
+    databasePath: parsed.DATABASE_PATH,
     apns: apnsConfig(parsed),
     demoLocation:
       parsed.DEMO_LAT !== undefined && parsed.DEMO_LON !== undefined

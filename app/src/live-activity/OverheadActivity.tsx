@@ -9,10 +9,11 @@ import {
   padding,
   truncationMode,
 } from '@expo/ui/swift-ui/modifiers';
-import type { ActivityProps, Route } from '@overhead/shared';
+import type { Route } from '@overhead/shared';
+import type { LiveActivityContent } from '@overhead/shared/cardText';
 import { createLiveActivity, type LiveActivityEnvironment } from 'expo-widgets';
 
-const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnvironment) => {
+const OverheadActivity = (props: LiveActivityContent, environment: LiveActivityEnvironment) => {
   'widget';
 
   const accent = environment.isLuminanceReduced
@@ -21,8 +22,8 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
       ? '#9A5900'
       : '#FFB340';
   const stage = environment.isStale ? 'passed' : props.stage;
-  const status = { approaching: 'Approaching', overhead: 'Above you now', passed: 'Passed' }[stage];
-  const details = [props.airline ?? props.flight, props.aircraft].filter(Boolean).join(' · ');
+  const status = environment.isStale ? 'Passed' : props.status;
+  const details = props.details;
 
   const statusColor = stage === 'passed' ? '#8E8E93' : accent;
   const statusLine = (size: number) => (
@@ -58,7 +59,7 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
       </HStack>
     ) : (
       <Text modifiers={[font({ size: size * 0.7, weight: 'bold' }), lineLimit(1), minimumScaleFactor(0.6)]}>
-        Route unknown
+        {props.title}
       </Text>
     );
 
@@ -120,4 +121,4 @@ const OverheadActivity = (props: ActivityProps, environment: LiveActivityEnviron
   };
 };
 
-export default createLiveActivity<ActivityProps>('Overhead', OverheadActivity);
+export default createLiveActivity<LiveActivityContent>('Overhead', OverheadActivity);
