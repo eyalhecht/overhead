@@ -52,6 +52,7 @@ export function createWatcher({
     if (action.type === 'back-off')
       console.warn(`${userLabel(user)} card never confirmed, pausing new cards`);
     await send(user, pushesFor(action, state, user.startToken));
+    users.save(user);
   }
 
   async function send(user: User, pushes: Push[]): Promise<void> {
@@ -76,6 +77,7 @@ export function createWatcher({
     const { state, pushes } = receiveCardTokens(user.activity, tokens);
     user.activity = state;
     await send(user, pushes);
+    users.save(user);
   }
 
   function schedule(): void {

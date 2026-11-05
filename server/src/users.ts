@@ -1,7 +1,11 @@
 import type { GeoPoint, RegisterRequest } from '@overhead/shared';
+import Database from 'better-sqlite3';
+import { closeSync, openSync } from 'node:fs';
 import { initialActivityState, type ActivityState } from './activity/policy.js';
 
 const MINUTES_PER_DAY = 24 * 60;
+const FORGET_AFTER_MS = 30 * 24 * 60 * 60_000;
+const OWNER_ONLY = 0o600;
 
 export interface User {
   deviceId: string;
@@ -9,6 +13,7 @@ export interface User {
   startToken?: string;
   quietHours: [number, number] | null;
   utcOffsetMinutes: number;
+  lastSeenAt: number;
   activity: ActivityState;
 }
 
@@ -16,6 +21,21 @@ export interface UserStore {
   upsert(request: RegisterRequest): User;
   find(deviceId: string): User | undefined;
   all(): User[];
+  save(user: User): void;
+  close(): void;
+}
+
+export interface UserStorage {
+  load(): User[];
+  write(user: User): void;
+  remove(deviceId: string): void;
+  close(): void;
+}
+
+interface UserStoreOptions {
+  maxUsers?: number;
+  storage?: UserStorage;
+  now?: () => number;
 }
 
 export class UserLimitError extends Error {
@@ -24,8 +44,21 @@ export class UserLimitError extends Error {
   }
 }
 
-export function createUserStore(maxUsers = 100): UserStore {
-  const users = new Map<string, User>();
+export function createUserStore({
+  maxUsers = 100,
+  storage = memoryStorage(),
+  now = Date.now,
+}: UserStoreOptions = {}): UserStore {
+  const users = new Map(storage.load().map((user) => [user.deviceId, user]));
+
+  function forgetSilentPhones(): void {
+    for (const user of users.values()) {
+      if (now() - user.lastSeenAt <= FORGET_AFTER_MS) continue;
+      users.delete(user.deviceId);
+      storage.remove(user.deviceId);
+    }
+  }
+  forgetSilentPhones();
 
   return {
     upsert(request) {
@@ -37,6 +70,7 @@ export function createUserStore(maxUsers = 100): UserStore {
         startToken: request.startToken,
         quietHours: request.quietHours,
         utcOffsetMinutes: request.utcOffsetMinutes,
+        lastSeenAt: now(),
       };
       const user: User = existing
         ? Object.assign(existing, profile)
@@ -46,6 +80,7 @@ export function createUserStore(maxUsers = 100): UserStore {
             ...profile,
           };
       users.set(user.deviceId, user);
+      storage.write(user);
       return user;
     },
 
@@ -54,11 +89,45 @@ export function createUserStore(maxUsers = 100): UserStore {
     },
 
     all() {
+      forgetSilentPhones();
       return [...users.values()];
+    },
+
+    save(user) {
+      storage.write(user);
+    },
+
+    close() {
+      storage.close();
     },
   };
 }
 
+export function memoryStorage(): UserStorage {
+  return { load: () => [], write: () => undefined, remove: () => undefined, close: () => undefined };
+}
+
+export function sqliteStorage(path: string): UserStorage {
+  closeSync(openSync(path, 'a', OWNER_ONLY));
+  const db = new Database(path);
+  db.exec('CREATE TABLE IF NOT EXISTS users (device_id TEXT PRIMARY KEY, data TEXT NOT NULL)');
+  const upsert = db.prepare(
+    'INSERT INTO users (device_id, data) VALUES (?, ?) ON CONFLICT (device_id) DO UPDATE SET data = excluded.data',
+  );
+  const remove = db.prepare('DELETE FROM users WHERE device_id = ?');
+  const selectAll = db.prepare<[], { data: string }>('SELECT data FROM users');
+
+  return {
+    load: () =>
+      selectAll.all().map(({ data }) => {
+        const user = JSON.parse(data) as User;
+        return { ...user, activity: { ...initialActivityState(), ...user.activity } };
+      }),
+    write: (user) => upsert.run(user.deviceId, JSON.stringify(user)),
+    remove: (deviceId) => remove.run(deviceId),
+    close: () => db.close(),
+  };
+}
 export function userLabel({ deviceId }: Pick<User, 'deviceId'>): string {
   return `[${deviceId.slice(0, 8)}]`;
 }

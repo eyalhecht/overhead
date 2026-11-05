@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { createUserStore, isQuietTime, UserLimitError } from '../src/users.js';
+import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createUserStore, isQuietTime, sqliteStorage, UserLimitError, type UserStore } from '../src/users.js';
 
 const NIGHT: [number, number] = [22 * 60, 7 * 60];
 const utc = (hour: number, minute = 0) => Date.UTC(2026, 9, 29, hour, minute);
@@ -41,8 +44,64 @@ describe('createUserStore', () => {
   });
 
   it('refuses new users beyond the limit', () => {
-    const users = createUserStore(1);
+    const users = createUserStore({ maxUsers: 1 });
     users.upsert(request('first'));
     expect(() => users.upsert(request('second'))).toThrow(UserLimitError);
+  });
+});
+
+describe('saving users', () => {
+  const request = {
+    deviceId: 'phone',
+    lat: 32.069,
+    lon: 34.774,
+    activityTokens: [],
+    quietHours: null,
+    utcOffsetMinutes: 120,
+  };
+  const DAY_MS = 24 * 60 * 60_000;
+  let folder: string;
+
+  beforeEach(() => {
+    folder = mkdtempSync(join(tmpdir(), 'overhead-users-'));
+  });
+  afterEach(() => {
+    opened.splice(0).forEach((store) => store.close());
+    rmSync(folder, { recursive: true, force: true });
+  });
+
+  const opened: UserStore[] = [];
+  const openStore = (now = Date.UTC(2026, 10, 5)) => {
+    const store = createUserStore({ storage: sqliteStorage(join(folder, 'overhead.db')), now: () => now });
+    opened.push(store);
+    return store;
+  };
+
+  it('keeps users and their open card across a server restart', () => {
+    const before = openStore();
+    const user = before.upsert({ ...request, startToken: 'start-token' });
+    user.activity = { ...user.activity, cardTokens: ['card-1'], recentStarts: [123] };
+    before.save(user);
+
+    const after = openStore();
+    expect(after.find('phone')).toMatchObject({
+      startToken: 'start-token',
+      location: { lat: 32.069, lon: 34.774 },
+      activity: { cardTokens: ['card-1'], recentStarts: [123] },
+    });
+  });
+
+  it('forgets a phone that has not checked in for 30 days', () => {
+    const start = Date.UTC(2026, 10, 5);
+    openStore(start).upsert(request);
+
+    expect(openStore(start + 29 * DAY_MS).all()).toHaveLength(1);
+    expect(openStore(start + 31 * DAY_MS).all()).toHaveLength(0);
+    expect(openStore(start).all()).toHaveLength(0);
+  });
+
+  it.skipIf(process.platform === 'win32')('keeps the database readable only by the server', () => {
+    openStore().upsert(request);
+    expect(statSync(join(folder, 'overhead.db')).mode & 0o777).toBe(0o600);
   });
 });

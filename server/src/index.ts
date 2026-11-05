@@ -5,12 +5,14 @@ import { createPositionSource } from './flights/positions.js';
 import { createRouteSource } from './flights/routes.js';
 import { createSky } from './flights/sky.js';
 import { createApnsClient, createDryRunPushClient } from './push/apns.js';
-import { createUserStore } from './users.js';
+import { createUserStore, memoryStorage, sqliteStorage } from './users.js';
 
 const DRY_RUN_DEVICE = 'dry-run-device';
 
 const config = loadConfig();
-const users = createUserStore();
+const users = createUserStore({
+  storage: config.databasePath ? sqliteStorage(config.databasePath) : memoryStorage(),
+});
 const sky = createSky(createPositionSource(), createRouteSource({ fr24Token: config.fr24Token }));
 const push = config.apns ? createApnsClient(config.apns) : createDryRunPushClient(simulateCardOpened);
 const watcher = createWatcher({ users, sky, push, demoLocation: config.demoLocation });
@@ -42,3 +44,9 @@ createApp({ appKey: config.appKey, users, sky, watcher, demoLocation: config.dem
   },
 );
 watcher.start();
+
+process.once('SIGTERM', () => {
+  watcher.stop();
+  users.close();
+  process.exit(0);
+});

@@ -26,9 +26,10 @@ flowchart LR
 
 1. The app checks in with a rough location (~100 m) and its Live Activity push tokens.
 2. Every 5 seconds the server finds planes low and close to each phone, looks up their routes and computes how long each stays overhead.
-3. A pure policy decides whether to start, update or end the card; Apple Push delivers it.
+3. A pure policy decides whether to start, update or end the card, and keeps track of each card's push tokens; Apple Push delivers it.
+4. Users and their open card are saved in a SQLite file (`DATABASE_PATH`), so restarts and deploys don't drop anyone. Phones that haven't checked in for 30 days are deleted.
 
-The policy protects the phone's undocumented Live Activity push budget: routine updates go out at low priority, a stream of planes stays on one card, new cards are capped at 5 per hour, and starts back off when iOS silently drops one.
+The policy protects the phone's undocumented Live Activity push budget: routine updates go out at low priority, a stream of planes stays on one card, new cards are capped at 10 per hour, and starts back off when iOS silently drops one.
 
 ## Repository
 
@@ -38,6 +39,7 @@ server/   Node + Express 5 + TypeScript
   src/flights/    positions, routes, geometry, aircraft names, sky
   src/activity/   policy (pure state machine) and watcher (the 5 s loop)
   src/push/       Apple Push client
+  src/users.ts    user store: in memory, or SQLite when DATABASE_PATH is set
   src/api/        HTTP API
 app/      Expo SDK 58 + Expo Router
   src/app/            screens

@@ -1,9 +1,19 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { NearbyPlane, PassStage, RegisterRequest } from '@overhead/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACTIVITY_RULES } from '../src/activity/policy.js';
 import { createWatcher, type Watcher } from '../src/activity/watcher.js';
 import { pushPriority } from '../src/push/apns.js';
-import { createUserStore, type User, type UserStore } from '../src/users.js';
+import {
+  createUserStore,
+  memoryStorage,
+  sqliteStorage,
+  type User,
+  type UserStorage,
+  type UserStore,
+} from '../src/users.js';
 import { FakePush, FakeSky, nearbyPlane, registerRequest } from './fakes.js';
 
 const TICK_MS = 5000;
@@ -18,18 +28,28 @@ class World {
   now = Date.UTC(2026, 10, 1, 12);
   readonly sky = new FakeSky();
   readonly push = new FakePush();
-  users: UserStore = createUserStore();
-  watcher: Watcher = this.createWatcher();
+  users: UserStore;
+  watcher: Watcher;
   readonly sentAt: number[] = [];
   private cardsIssued = 0;
+
+  constructor(private readonly storage: () => UserStorage = memoryStorage) {
+    this.users = this.openUsers();
+    this.watcher = this.createWatcher();
+  }
 
   join(overrides: Partial<RegisterRequest> = {}): User {
     return this.users.upsert(registerRequest(overrides));
   }
 
   restartServer(): void {
-    this.users = createUserStore();
+    this.users.close();
+    this.users = this.openUsers();
     this.watcher = this.createWatcher();
+  }
+
+  private openUsers(): UserStore {
+    return createUserStore({ storage: this.storage(), now: () => this.now });
   }
 
   async run(durationMs: number, planesAt?: (elapsedMs: number) => NearbyPlane[]): Promise<void> {
@@ -173,6 +193,22 @@ describe('real-world situations', () => {
     await world.watcher.reportActivityTokens(user, ['card-1']);
 
     expect(world.pushes('end')).toMatchObject([{ token: 'card-1' }]);
+  });
+
+  it('keeps a card going through a server restart when users are saved', async () => {
+    const folder = mkdtempSync(join(tmpdir(), 'overhead-world-'));
+    const saved = new World(() => sqliteStorage(join(folder, 'overhead.db')));
+    saved.join();
+    await saved.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 600));
+    const sentBeforeRestart = saved.pushes().length;
+
+    saved.restartServer();
+    await saved.run(TICK_MS * 8, passing('ELY001', 0, 600));
+    saved.users.close();
+    rmSync(folder, { recursive: true, force: true });
+
+    expect(saved.pushes('start')).toHaveLength(1);
+    expect(saved.pushes().slice(sentBeforeRestart)).toMatchObject([{ event: 'update', token: 'card-1' }]);
   });
 
   it('follows the user when they drive somewhere else', async () => {

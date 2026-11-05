@@ -101,7 +101,7 @@ describe('API', () => {
   });
 
   it('asks a phone to try again later when the server is full', async () => {
-    const full = createUserStore(1);
+    const full = createUserStore({ maxUsers: 1 });
     const fullApp = createApp({
       appKey: APP_KEY,
       users: full,
