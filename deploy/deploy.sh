@@ -14,6 +14,9 @@ rm -f "$ARCHIVE"
 gcloud compute ssh "$VM" --project "$PROJECT" --zone "$ZONE" --quiet --command "
   set -euo pipefail
   sudo install -d -o overhead -g overhead -m 700 /opt/overhead/data
+  sudo install -d /etc/systemd/journald.conf.d
+  printf '[Journal]\nMaxRetentionSec=14day\n' | sudo tee /etc/systemd/journald.conf.d/overhead.conf >/dev/null
+  sudo systemctl restart systemd-journald
   sudo rm -rf /opt/overhead/app.next
   sudo mkdir -p /opt/overhead/app.next
   sudo tar -xzf /tmp/overhead.tar.gz -C /opt/overhead/app.next
