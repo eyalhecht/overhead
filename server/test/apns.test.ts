@@ -198,7 +198,7 @@ describe('Live Activity payload', () => {
 
   it('opens the Where to look screen when the card is tapped', () => {
     const { aps } = buildLiveActivityPayload('start', card, nowSeconds);
-    expect(aps).toMatchObject({ attributes: { url: 'overhead://look-up' } });
+    expect(aps).toMatchObject({ attributes: { url: 'overhead://' } });
   });
 
   it('names a plane without a known route by its aircraft in the alert', () => {

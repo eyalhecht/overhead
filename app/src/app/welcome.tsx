@@ -27,12 +27,12 @@ export default function WelcomeScreen() {
       </Card>
       <Intro
         title="Planes above you, live"
-        body="When a plane flies low over you, Overhead shows where it came from and where it’s going, right on your Lock Screen. It disappears the moment the plane is gone."
+        body="When a plane flies low over you, a card shows where it came from, where it’s going and where to look. It disappears once the plane is gone."
       />
       <View style={styles.spacer} />
       {note && <Text style={styles.note}>{note}</Text>}
-      <Button label="Show a sample on my Lock Screen" onPress={showSample} />
-      <Button label="Continue" variant="plain" onPress={() => router.push('/location')} />
+      <Button label="Continue" onPress={() => router.push('/location')} />
+      <Button label="Show it on my Lock Screen" variant="plain" onPress={showSample} />
     </Screen>
   );
 }

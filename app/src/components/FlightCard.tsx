@@ -1,46 +1,37 @@
 import type { ActivityProps, NearbyPlane } from '@overhead/shared';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Card } from '@/components/Card';
+import { LookUpRow } from '@/components/LookUpRow';
 import { RouteArc } from '@/components/RouteArc';
-import {
-  cardDetails,
-  cardTitle,
-  compassDirection,
-  describeStage,
-  formatAltitude,
-  formatDistance,
-} from '@/lib/format';
+import { cardDetails, cardTitle, describeStage, formatAltitude, formatDistance } from '@/lib/format';
 import { PLANE_ICON } from '@/lib/skyMap';
 import { themedStyles, useColors } from '@/lib/theme';
 
-interface FlightCardProps {
-  card: ActivityProps;
-  plane?: NearbyPlane;
-  onPress: () => void;
-}
-
-export function FlightCard({ card, plane, onPress }: FlightCardProps) {
+export function FlightCard({ card, plane }: { card: ActivityProps; plane?: NearbyPlane }) {
   const styles = useStyles();
-  const position =
-    plane &&
-    [
-      compassDirection(plane.bearingDeg),
-      formatDistance(plane.distanceNm),
-      formatAltitude(plane.altitudeFt),
-    ].join(' · ');
+  const position = plane && [`${formatDistance(plane.distanceNm)} away`, formatAltitude(plane.altitudeFt)];
 
   return (
-    <Pressable accessibilityRole="button" accessibilityHint="Shows where to look" onPress={onPress}>
-      <Card>
-        <FlightSummary card={card} />
-        {position && <Text style={styles.details}>{position}</Text>}
-      </Card>
-    </Pressable>
+    <Card>
+      <FlightSummary card={card} extraDetails={position} />
+      {plane && card.stage !== 'passed' && (
+        <>
+          <View style={styles.divider} />
+          <LookUpRow plane={plane} />
+        </>
+      )}
+    </Card>
   );
 }
 
-export function FlightSummary({ card, label }: { card: ActivityProps; label?: string }) {
+interface FlightSummaryProps {
+  card: ActivityProps;
+  label?: string;
+  extraDetails?: string[];
+}
+
+export function FlightSummary({ card, label, extraDetails = [] }: FlightSummaryProps) {
   const styles = useStyles();
   const colors = useColors();
   const statusColor = card.stage === 'passed' ? colors.textSecondary : colors.accent;
@@ -70,7 +61,7 @@ export function FlightSummary({ card, label }: { card: ActivityProps; label?: st
         <Text style={styles.unknownRoute}>{cardTitle(card)}</Text>
       )}
       <RouteArc stage={card.stage} />
-      <Text style={styles.details}>{cardDetails(card)}</Text>
+      <Text style={styles.details}>{[cardDetails(card), ...extraDetails].join(' · ')}</Text>
     </View>
   );
 }
@@ -93,9 +84,10 @@ const useStyles = themedStyles((colors) =>
     statusText: { fontSize: 14, fontWeight: '600' },
     codes: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
     alignEnd: { alignItems: 'flex-end' },
-    code: { color: colors.text, fontSize: 44, fontWeight: '700', letterSpacing: -1 },
+    code: { color: colors.text, fontSize: 52, fontWeight: '700', letterSpacing: -1.5 },
     city: { color: colors.textSecondary, fontSize: 14, fontWeight: '500' },
     unknownRoute: { color: colors.text, fontSize: 28, fontWeight: '700', marginTop: 6 },
     details: { color: colors.textSecondary, fontSize: 14, fontWeight: '500', marginTop: 2 },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginVertical: 16 },
   }),
 );

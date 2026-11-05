@@ -9,10 +9,10 @@ import type { Settings } from '@/services/settings';
 const OPTIONS: { key: keyof Settings; label: string; help: string }[] = [
   {
     key: 'liveActivities',
-    label: 'Show Live Activity',
-    help: 'On your Lock Screen when a plane is about to pass',
+    label: 'Show on Lock Screen',
+    help: 'A card when a plane passes over you',
   },
-  { key: 'quietHours', label: 'Quiet hours', help: '22:00 to 07:00. No cards while you sleep.' },
+  { key: 'quietHours', label: 'Quiet hours', help: '22:00 to 07:00, no cards while you sleep' },
 ];
 
 export default function SettingsScreen() {

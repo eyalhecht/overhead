@@ -11,7 +11,7 @@ export interface PushClient {
 }
 
 const ACTIVITY_NAME = 'Overhead';
-const OPEN_ON_TAP = 'overhead://look-up';
+const OPEN_ON_TAP = 'overhead://';
 const STALE_AFTER_SECONDS = 60;
 const ALERT_TITLES: Record<CardStage, string> = {
   approaching: 'Approaching',
