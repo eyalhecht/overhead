@@ -1,3 +1,4 @@
+import { isOnCard } from '@overhead/shared/rules';
 import type { NearbyPlane } from '@overhead/shared';
 import { KM_PER_NM } from './format';
 
@@ -37,7 +38,7 @@ export interface Zoom {
 
 export function zoomFor(planes: NearbyPlane[]): Zoom {
   const distanceKm = (plane: NearbyPlane) => plane.distanceNm * KM_PER_NM;
-  const onTheCard = planes.filter(({ stage }) => stage !== 'inbound');
+  const onTheCard = planes.filter(isOnCard);
   const stepKm = ringStepKm(Math.max(0, ...onTheCard.map(distanceKm)));
   return { stepKm, shown: planes.filter((plane) => distanceKm(plane) <= stepKm * RING_COUNT) };
 }

@@ -4,12 +4,12 @@ import { getIosIdForVendorAsync } from 'expo-application';
 import { addPushToStartTokenListener } from 'expo-widgets';
 import OverheadActivity from '@/live-activity/OverheadActivity';
 import { register } from './api';
-import { loadSettings, onSettingsChange, QUIET_HOURS } from './settings';
+import { CARD_MAX_AGE_MS, QUIET_HOURS } from '@overhead/shared/rules';
+import { loadSettings, onSettingsChange } from './settings';
 
 const LOCATION_STORAGE_KEY = 'lastLocation';
 const MAINTENANCE_INTERVAL_MS = 5000;
 const MAX_SILENCE_MS = 60_000;
-const MAX_CARD_AGE_MS = 30 * 60_000;
 
 let startToken: string | undefined;
 let lastLocation: GeoPoint | undefined;
@@ -74,7 +74,7 @@ function closeOldCards(): void {
   for (const card of OverheadActivity.getInstances()) {
     const firstSeen = cardFirstSeen.get(card.getId()) ?? Date.now();
     cardFirstSeen.set(card.getId(), firstSeen);
-    if (Date.now() - firstSeen > MAX_CARD_AGE_MS) void card.end('immediate').catch(() => undefined);
+    if (Date.now() - firstSeen > CARD_MAX_AGE_MS) void card.end('immediate').catch(() => undefined);
   }
 }
 

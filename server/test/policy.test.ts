@@ -1,4 +1,4 @@
-import type { NearbyPlane, PassStage } from '@overhead/shared';
+import { CARD_MAX_AGE_MS, type NearbyPlane, type PassStage } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_RULES,
@@ -205,6 +205,12 @@ describe('nextStep', () => {
     expect(sim.step([plane('KLM3')], 9 * MINUTE)).toBe('update');
     expect(sim.step([plane('BAW9')], 5 * MINUTE)).toBe('end');
     expect(sim.step([plane('BAW9')])).toBe('start');
+  });
+});
+
+describe('the limit the app keeps', () => {
+  it('renews a card before the app closes it on its own', () => {
+    expect(ACTIVITY_RULES.renewAfterMs).toBeLessThan(CARD_MAX_AGE_MS);
   });
 });
 

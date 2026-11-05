@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { NearbyPlane, PassStage, RegisterRequest } from '@overhead/shared';
+import { CARD_MAX_AGE_MS, type NearbyPlane, type PassStage, type RegisterRequest } from '@overhead/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACTIVITY_RULES } from '../src/activity/policy.js';
 import { createWatcher, type Watcher } from '../src/activity/watcher.js';
@@ -19,7 +19,6 @@ import { FakePush, FakeSky, nearbyPlane, registerRequest } from './fakes.js';
 const TICK_MS = 5000;
 const MINUTE_MS = 60_000;
 const IOS_URGENT_PUSHES_PER_HOUR = 12;
-const APP_CLOSES_CARDS_AFTER_MS = 30 * MINUTE_MS;
 
 const TEL_AVIV = { lat: 32.081, lon: 34.814 };
 const BERLIN = { lat: 52.52, lon: 13.405 };
@@ -287,7 +286,7 @@ describe('real-world situations', () => {
       const ends = world.pushes('end');
       starts.forEach((start, index) => {
         const closedAt = ends[index]?.at ?? world.now;
-        expect(closedAt - start.at).toBeLessThan(APP_CLOSES_CARDS_AFTER_MS);
+        expect(closedAt - start.at).toBeLessThan(CARD_MAX_AGE_MS);
       });
     });
   });

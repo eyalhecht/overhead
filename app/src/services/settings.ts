@@ -5,8 +5,6 @@ export interface Settings {
   quietHours: boolean;
 }
 
-export const QUIET_HOURS: [number, number] = [22 * 60, 7 * 60];
-
 const STORAGE_KEY = 'settings';
 const DEFAULT_SETTINGS: Settings = { liveActivities: true, quietHours: true };
 

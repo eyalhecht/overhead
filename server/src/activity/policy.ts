@@ -1,4 +1,4 @@
-import type { ActivityProps, CardStage, NearbyPlane } from '@overhead/shared';
+import { isOnCard, type ActivityProps, type NearbyPlane } from '@overhead/shared';
 import type { LiveActivityEvent, PushResult } from '../push/apns.js';
 
 export const ACTIVITY_RULES = {
@@ -14,8 +14,6 @@ export const ACTIVITY_RULES = {
 
 const HOUR_MS = 60 * 60_000;
 const EMPTY_CARD: ActivityProps = { flight: '', route: null, stage: 'passed' };
-
-type CardPlane = NearbyPlane & { stage: Exclude<CardStage, 'passed'> };
 
 export interface ShowingCard {
   props: ActivityProps;
@@ -233,10 +231,6 @@ function trackOverhead(
   return Object.fromEntries(planes.map(({ flight }) => [flight, previous[flight] ?? now]));
 }
 
-function isOnCard(plane: NearbyPlane): plane is CardPlane {
-  return plane.stage !== 'inbound';
-}
-
 function isCircling(overheadSince: Record<string, number>, plane: NearbyPlane, now: number): boolean {
   return now - (overheadSince[plane.flight] ?? now) > ACTIVITY_RULES.circlingLimitMs;
 }
@@ -245,7 +239,7 @@ function sameCard(a: ActivityProps, b: ActivityProps): boolean {
   return a.flight === b.flight && a.stage === b.stage;
 }
 
-function cardProps(plane: CardPlane): ActivityProps {
+function cardProps(plane: NearbyPlane & { stage: 'approaching' | 'overhead' }): ActivityProps {
   return {
     flight: plane.flight,
     airline: plane.airline,

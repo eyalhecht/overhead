@@ -1,8 +1,8 @@
 import type { GeoPoint, RegisterRequest, SkySnapshot } from '@overhead/shared';
+import { LOCATION_DECIMALS } from '@overhead/shared/rules';
 
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL ?? 'http://localhost:8080';
 const APP_KEY = process.env.EXPO_PUBLIC_APP_KEY ?? '';
-const LOCATION_DECIMALS = 3;
 
 async function request(path: string, init: RequestInit = {}): Promise<Response> {
   const response = await fetch(`${SERVER_URL}${path}`, {
