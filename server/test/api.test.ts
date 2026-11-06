@@ -113,6 +113,11 @@ describe('API', () => {
       .expect(400);
   });
 
+  it('answers a health check without the app key and without any data', async () => {
+    const response = await request(app).get('/health').expect(204);
+    expect(response.text).toBe('');
+  });
+
   it('rejects an app key that is only partly right', async () => {
     await request(app).get('/sky?deviceId=phone-1').set('x-app-key', 'test-ke').expect(401);
     await request(app).get('/sky?deviceId=phone-1').set('x-app-key', 'test-kez').expect(401);
