@@ -289,7 +289,7 @@ describe('card tokens', () => {
     expect(sim.state.cardTokens).toEqual([]);
   });
 
-  it('takes back a start that Apple did not accept, so it does not count', () => {
+  it('drops a start that Apple did not accept but still counts it toward the hourly limit', () => {
     const sim = new Simulation();
     sim.step([plane('BAW1')]);
     sim.state = afterPush(
@@ -298,7 +298,19 @@ describe('card tokens', () => {
       'failed',
     );
     expect(sim.state.showing).toBeUndefined();
-    expect(sim.state.recentStarts).toEqual([]);
+    expect(sim.state.recentStarts).toHaveLength(1);
+  });
+
+  it('keeps waiting for the card after a start Apple never answered, since it may have arrived', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.state = afterPush(
+      sim.state,
+      { token: 'start', event: 'start', props: sim.state.lastProps! },
+      'no-answer',
+    );
+    expect(sim.state.showing?.awaitingTokenSince).toBeDefined();
+    expect(sim.step([plane('BAW1')])).not.toBe('start');
   });
 });
 

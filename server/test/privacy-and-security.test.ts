@@ -120,6 +120,21 @@ describe('privacy and security', () => {
     }
   });
 
+  it('rounds a precise location on the server too, whatever the phone sends', async () => {
+    await request(app)
+      .post('/register')
+      .set('x-app-key', APP_KEY)
+      .send(registerRequest({ ...PHONE, lat: 32.0694321, lon: 34.7741234 }))
+      .expect(204);
+    await watcher.tick();
+
+    const feeds = sent.filter(({ url }) => url.includes('adsb'));
+    expect(feeds.length).toBeGreaterThan(0);
+    for (const { url } of feeds) {
+      expect(url).toMatch(new RegExp(`/${PHONE.lat}/(lon/)?${PHONE.lon}/`));
+    }
+  });
+
   it('gives Flightradar24 only flight numbers, never a location or who is asking', async () => {
     await aWholeDay();
 

@@ -1,7 +1,7 @@
 import { isOnCard, type ActivityProps, type NearbyPlane, type RegisterRequest } from '@overhead/shared';
 
 export type LiveActivityEvent = 'start' | 'update' | 'end';
-export type PushResult = 'delivered' | 'token-invalid' | 'failed';
+export type PushResult = 'delivered' | 'token-invalid' | 'failed' | 'no-answer';
 
 export const ACTIVITY_RULES = {
   keepAliveMs: 30_000,
@@ -137,7 +137,7 @@ export function receiveCardTokens(
 }
 
 export function afterPush(state: ActivityState, { token, event }: Push, result: PushResult): ActivityState {
-  if (event === 'start') return result === 'delivered' ? state : forgetStart(state);
+  if (event === 'start') return result === 'delivered' || result === 'no-answer' ? state : forgetStart(state);
   if (result === 'token-invalid') return { ...state, cardTokens: without(state.cardTokens, token) };
   if (event === 'end' && result === 'delivered') {
     return {
@@ -150,7 +150,7 @@ export function afterPush(state: ActivityState, { token, event }: Push, result: 
 }
 
 function forgetStart(state: ActivityState): ActivityState {
-  return { ...state, showing: undefined, recentStarts: state.recentStarts.slice(0, -1) };
+  return { ...state, showing: undefined };
 }
 
 function endLeftoverCards(state: ActivityState): StepResult {

@@ -173,7 +173,7 @@ describe('real-world situations', () => {
     const user = world.join();
     await world.run(UNTIL_OVERHEAD_MS, passing('ELY001', 0, 90));
 
-    world.join({ startToken: undefined, activityTokens: [...user.activity.cardTokens] });
+    world.join({ startToken: null, activityTokens: [...user.activity.cardTokens] });
     await world.run(
       10 * MINUTE_MS,
       together(passing('ELY001', -UNTIL_OVERHEAD_MS, 90), passing('WZZ63', 5 * MINUTE_MS, 90)),

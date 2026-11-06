@@ -93,14 +93,18 @@ export function createApnsClient(
 
         let status = 0;
         let body = '';
-        request.setTimeout(timeoutMs, () => request.destroy(new Error(`no answer in ${timeoutMs} ms`)));
+        let timedOut = false;
+        request.setTimeout(timeoutMs, () => {
+          timedOut = true;
+          request.destroy(new Error(`no answer in ${timeoutMs} ms`));
+        });
         request.setEncoding('utf8');
         request.on('response', (headers) => (status = Number(headers[':status'])));
         request.on('data', (chunk: string) => (body += chunk));
         request.on('end', () => resolve(interpretResponse(event, status, body)));
         request.on('error', (error) => {
           console.warn(`APNs ${event} failed: ${error.message}`);
-          resolve('failed');
+          resolve(timedOut ? 'no-answer' : 'failed');
         });
         request.end(JSON.stringify(buildLiveActivityPayload(event, props, Math.floor(now() / 1000))));
       });

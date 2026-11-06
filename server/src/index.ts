@@ -33,7 +33,7 @@ function simulateCardOpened(): void {
   if (dryRunUser) void watcher.reportCardTokens(dryRunUser, [`dry-run-card-${Date.now()}`]);
 }
 
-createApp({ appKey: config.appKey, users, watcher }).listen(config.port, () => {
+const server = createApp({ appKey: config.appKey, users, watcher }).listen(config.port, () => {
   const mode = config.apns ? 'pushing to Apple' : 'dry run';
   const watching = config.demoLocation
     ? `demo spot ${config.demoLocation.lat},${config.demoLocation.lon}`
@@ -43,7 +43,9 @@ createApp({ appKey: config.appKey, users, watcher }).listen(config.port, () => {
 watcher.start();
 
 process.once('SIGTERM', () => {
-  watcher.stop();
-  users.close();
-  process.exit(0);
+  server.close();
+  void watcher.stop().then(() => {
+    users.close();
+    process.exit(0);
+  });
 });
