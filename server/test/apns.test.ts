@@ -14,6 +14,7 @@ interface ReceivedPush {
 interface AppleReply {
   status: number;
   reason?: string;
+  silent?: boolean;
 }
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url));
@@ -46,6 +47,7 @@ class FakeApple {
       stream.on('data', (chunk: string) => (body += chunk));
       stream.on('end', () => {
         this.received.push({ headers, body: JSON.parse(body) });
+        if (this.reply.silent) return;
         stream.respond({ ':status': this.reply.status });
         stream.end(this.reply.reason ? JSON.stringify({ reason: this.reply.reason }) : undefined);
       });
@@ -69,6 +71,8 @@ function decodeJwt(token: string) {
   const decode = (part: string) => JSON.parse(Buffer.from(part, 'base64url').toString());
   return { header: decode(header), claims: decode(claims), signed: `${header}.${claims}`, signature };
 }
+
+const PUSH_TIMEOUT_MS = 500;
 
 describe('APNs client', () => {
   let apple: FakeApple;
@@ -94,12 +98,18 @@ describe('APNs client', () => {
         host,
       },
       () => now,
+      PUSH_TIMEOUT_MS,
     );
   });
 
   afterEach(async () => {
     await apple.close();
     vi.unstubAllEnvs();
+  });
+
+  it('gives up on a push Apple never answers, so one stuck push cannot stall every phone', async () => {
+    apple.reply = { status: 200, silent: true };
+    expect(await apns.send('card-token', 'update', card)).toBe('failed');
   });
 
   it('delivers a start push with the headers Apple requires for Live Activities', async () => {

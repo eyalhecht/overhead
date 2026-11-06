@@ -1,6 +1,7 @@
+import type { LiveActivityEvent, Push, PushResult } from '../src/activity/policy.js';
 import type { ActivityProps, GeoPoint, NearbyPlane, RegisterRequest } from '@overhead/shared';
 import type { Sky } from '../src/flights/sky.js';
-import type { LiveActivityEvent, PushClient, PushResult } from '../src/push/apns.js';
+import type { PushClient } from '../src/push/apns.js';
 
 export const nearbyPlane = (flight: string, overrides: Partial<NearbyPlane> = {}): NearbyPlane => ({
   id: flight.toLowerCase(),
@@ -26,14 +27,8 @@ export class FakeSky implements Sky {
   }
 }
 
-export interface SentPush {
-  token: string;
-  event: LiveActivityEvent;
-  props: ActivityProps;
-}
-
 export class FakePush implements PushClient {
-  sent: SentPush[] = [];
+  sent: Push[] = [];
   result: PushResult = 'delivered';
 
   async send(token: string, event: LiveActivityEvent, props: ActivityProps): Promise<PushResult> {

@@ -13,15 +13,23 @@ const MAINTENANCE_INTERVAL_MS = 5000;
 
 let startToken: string | undefined;
 const locationMemory = createLocationMemory(AsyncStorage);
-let lastReport: LastReport = { activityTokens: '', at: 0 };
+let lastReport: LastReport = { cardTokens: '', at: 0 };
 let cardFirstSeen = new Map<string, number>();
 
 export async function checkIn(location?: GeoPoint): Promise<void> {
+  try {
+    await report(location);
+  } catch (error) {
+    console.warn(`Check-in failed: ${(error as Error).message}`);
+  }
+}
+
+async function report(location?: GeoPoint): Promise<void> {
   if (location) await locationMemory.remember(location);
   const target = await locationMemory.recall();
   if (!target) return;
 
-  const [deviceId, settings, activityTokens] = await Promise.all([
+  const [deviceId, settings, cardTokens] = await Promise.all([
     getIosIdForVendorAsync(),
     loadSettings(),
     openCardTokens(),
@@ -32,33 +40,32 @@ export async function checkIn(location?: GeoPoint): Promise<void> {
     deviceId,
     ...target,
     startToken: settings.liveActivities ? startToken : undefined,
-    activityTokens,
+    activityTokens: cardTokens,
     quietHours: settings.quietHours ? QUIET_HOURS : null,
     utcOffsetMinutes: -new Date().getTimezoneOffset(),
   });
-  lastReport = { activityTokens: activityTokens.join(), at: Date.now() };
+  lastReport = { cardTokens: cardTokens.join(), at: Date.now() };
 }
 
 export function startCheckInService(): void {
   addPushToStartTokenListener(({ activityPushToStartToken }) => {
     startToken = activityPushToStartToken;
-    void safeCheckIn();
+    void checkIn();
   });
-  onSettingsChange(() => void safeCheckIn());
-  setInterval(() => void maintain(), MAINTENANCE_INTERVAL_MS);
+  onSettingsChange(() => void checkIn());
+  scheduleMaintenance();
+}
+
+function scheduleMaintenance(): void {
+  setTimeout(async () => {
+    await maintain();
+    scheduleMaintenance();
+  }, MAINTENANCE_INTERVAL_MS);
 }
 
 async function maintain(): Promise<void> {
   closeOldCards();
-  if (isCheckInDue(lastReport, await openCardTokens(), Date.now())) await safeCheckIn();
-}
-
-async function safeCheckIn(): Promise<void> {
-  try {
-    await checkIn();
-  } catch (error) {
-    console.warn(`Check-in failed: ${(error as Error).message}`);
-  }
+  if (isCheckInDue(lastReport, await openCardTokens(), Date.now())) await checkIn();
 }
 
 async function openCardTokens(): Promise<string[]> {

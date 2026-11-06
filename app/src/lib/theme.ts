@@ -1,8 +1,6 @@
 import { useColorScheme } from 'react-native';
 import { palettes, type Palette } from './palettes';
 
-export type { Palette };
-
 export const radius = {
   card: 26,
   button: 18,

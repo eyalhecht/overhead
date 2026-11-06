@@ -30,7 +30,7 @@ const dryRunUser =
     : undefined;
 
 function simulateCardOpened(): void {
-  if (dryRunUser) void watcher.reportActivityTokens(dryRunUser, [`dry-run-card-${Date.now()}`]);
+  if (dryRunUser) void watcher.reportCardTokens(dryRunUser, [`dry-run-card-${Date.now()}`]);
 }
 
 createApp({ appKey: config.appKey, users, watcher }).listen(config.port, () => {

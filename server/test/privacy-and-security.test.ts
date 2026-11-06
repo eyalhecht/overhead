@@ -143,7 +143,7 @@ describe('privacy and security', () => {
   it('answers an unexpected failure without any internal detail', async () => {
     const broken = {
       ...watcher,
-      reportActivityTokens: () => Promise.reject(new Error('disk full at /opt/overhead/data')),
+      reportCardTokens: () => Promise.reject(new Error('disk full at /opt/overhead/data')),
     };
     const response = await request(createApp({ appKey: APP_KEY, users: createUserStore(), watcher: broken }))
       .post('/register')

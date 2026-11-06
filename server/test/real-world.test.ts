@@ -74,7 +74,7 @@ class World {
       const user = this.users.all().find((candidate) => candidate.startToken === token);
       if (event !== 'start' || !user?.activity.showing) continue;
       this.cardsIssued += 1;
-      await this.watcher.reportActivityTokens(user, [`card-${this.cardsIssued}`]);
+      await this.watcher.reportCardTokens(user, [`card-${this.cardsIssued}`]);
     }
   }
 
@@ -189,7 +189,7 @@ describe('real-world situations', () => {
 
     world.restartServer();
     const user = world.join();
-    await world.watcher.reportActivityTokens(user, ['card-1']);
+    await world.watcher.reportCardTokens(user, ['card-1']);
 
     expect(world.pushes('end')).toMatchObject([{ token: 'card-1' }]);
   });

@@ -26,7 +26,7 @@ export function useLocation() {
         (update) => {
           const coordinates = toCoordinates(update);
           setLocation(coordinates);
-          void checkIn(coordinates).catch(() => undefined);
+          void checkIn(coordinates);
         },
       ),
     [],

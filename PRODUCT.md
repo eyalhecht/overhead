@@ -50,7 +50,7 @@ Overhead's edge is the experience: only the plane above you, made simple and ple
 
 **Before inviting anyone:**
 
-- **Restarts must not drop users.** Today a server restart forgets every phone until it reopens the app; it happened about six times in one week. Users must survive restarts and deploys.
+- **Restarts must not drop users.** Done: users and their open card are saved in SQLite, so restarts and deploys need nothing from testers.
 - **Install through TestFlight.** This needs one Apple beta review, covering Always location and Live Activities started by push.
 
 **During the two weeks:**
@@ -93,7 +93,6 @@ Waiting for a public launch, because they don't matter for this goal: running co
 
 | Risk | What would show it | Kill criterion |
 |---|---|---|
-| Server restarts drop testers | Restarts in the logs | Any restart that needs testers to act |
 | Too few planes where testers are | Cards per tester per day | Under 3 a day for most testers |
 | Unexplained misses break trust | Testers report a plane with no card | More than 1 per tester per week |
 | TestFlight review blocks the start | Apple's review result | Rejected twice: switch to ad hoc builds with registered devices |
@@ -111,7 +110,7 @@ A plane gets a card when it is predicted to pass within about **2.8 km** of you,
 - We predict its closest point to you from its position, heading and speed.
 - Planes on the ground are ignored.
 - Hovering aircraft (for example a police helicopter circling) are never shown. Only aircraft passing through count.
-- A plane we can't find a route for (private jet, military, helicopter) still gets a card, showing what we do know, such as "Private jet, Cessna Citation".
+- A plane we can't find a route for (private jet, military, helicopter) still gets a card, showing what we do know, its flight number and aircraft type code, such as "4XCDO · C25A" under "Route unknown".
 
 ## When the card appears and disappears
 

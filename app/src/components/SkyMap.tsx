@@ -7,6 +7,7 @@ import { MAP, northLabelPosition, placePlane, zoomFor } from '@/lib/skyMap';
 import { useColors } from '@/lib/theme';
 
 const PATH_HALF_LENGTH = 400;
+const FACING_FAN_PATH = 'M150 100 L139 76 A26 26 0 0 1 161 76 Z';
 const LABELLED_RINGS = MAP.rings.slice(0, 2);
 const { center } = MAP;
 
@@ -65,7 +66,7 @@ export function SkyMap({ planes, highlightedId, heading }: SkyMapProps) {
         );
       })}
 
-      <Path d="M150 100 L139 76 A26 26 0 0 1 161 76 Z" fill={colors.mapFan} />
+      <Path d={FACING_FAN_PATH} fill={colors.mapFan} />
       {LABELLED_RINGS.map((ring) => (
         <SvgText
           key={ring}

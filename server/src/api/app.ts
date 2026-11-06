@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import express, { type ErrorRequestHandler, type Express, type RequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { UserLimitError } from '../users.js';
-import { createRouter, type RouterDependencies } from './routes.js';
+import { createRouter, type RouterDependencies } from './router.js';
 
 const MAX_BODY_SIZE = '2kb';
 

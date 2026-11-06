@@ -1,8 +1,8 @@
 import type { GeoPoint, NearbyPlane } from '@overhead/shared';
 import type { Sky } from '../flights/sky.js';
 import type { PushClient } from '../push/apns.js';
-import { isQuietTime, userLabel, type User, type UserStore } from '../users.js';
-import { afterPush, nextStep, pushesFor, receiveCardTokens, type Push } from './policy.js';
+import { userLabel, type User, type UserStore } from '../users.js';
+import { afterPush, isQuietTime, nextStep, pushesFor, receiveCardTokens, type Push } from './policy.js';
 
 const TICK_INTERVAL_MS = 5000;
 
@@ -18,7 +18,7 @@ export interface Watcher {
   start(): void;
   stop(): void;
   tick(): Promise<void>;
-  reportActivityTokens(user: User, tokens: string[]): Promise<void>;
+  reportCardTokens(user: User, tokens: string[]): Promise<void>;
   planesFor(user: User): NearbyPlane[];
 }
 
@@ -76,7 +76,7 @@ export function createWatcher({
     });
   }
 
-  async function reportActivityTokens(user: User, tokens: string[]): Promise<void> {
+  async function reportCardTokens(user: User, tokens: string[]): Promise<void> {
     const { state, pushes } = receiveCardTokens(user.activity, tokens);
     user.activity = state;
     await send(user, pushes);
@@ -100,7 +100,7 @@ export function createWatcher({
       clearTimeout(timer);
     },
     tick,
-    reportActivityTokens,
+    reportCardTokens,
     planesFor: (user) => planesSeen.get(user) ?? [],
   };
 }

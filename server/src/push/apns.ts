@@ -1,10 +1,8 @@
 import crypto from 'node:crypto';
 import http2 from 'node:http2';
 import { cardText, liveActivityContent, type ActivityProps } from '@overhead/shared';
+import type { LiveActivityEvent, PushResult } from '../activity/policy.js';
 import type { ApnsConfig } from '../config.js';
-
-export type LiveActivityEvent = 'start' | 'update' | 'end';
-export type PushResult = 'delivered' | 'token-invalid' | 'failed';
 
 export interface PushClient {
   send(token: string, event: LiveActivityEvent, props: ActivityProps): Promise<PushResult>;
@@ -15,6 +13,7 @@ const OPEN_ON_TAP = 'overhead://';
 const STALE_AFTER_SECONDS = 60;
 const AUTH_TOKEN_TTL_MS = 40 * 60_000;
 const IDLE_CONNECTION_MS = 5 * 60_000;
+const PUSH_TIMEOUT_MS = 10_000;
 const INVALID_TOKEN_REASONS = new Set([
   'BadDeviceToken',
   'Unregistered',
@@ -46,7 +45,11 @@ export function pushPriority(event: LiveActivityEvent): '5' | '10' {
   return event === 'update' ? '5' : '10';
 }
 
-export function createApnsClient(config: ApnsConfig, now: () => number = Date.now): PushClient {
+export function createApnsClient(
+  config: ApnsConfig,
+  now: () => number = Date.now,
+  timeoutMs = PUSH_TIMEOUT_MS,
+): PushClient {
   let session: http2.ClientHttp2Session | undefined;
   let authToken = { value: '', issuedAt: 0 };
 
@@ -90,6 +93,7 @@ export function createApnsClient(config: ApnsConfig, now: () => number = Date.no
 
         let status = 0;
         let body = '';
+        request.setTimeout(timeoutMs, () => request.destroy(new Error(`no answer in ${timeoutMs} ms`)));
         request.setEncoding('utf8');
         request.on('response', (headers) => (status = Number(headers[':status'])));
         request.on('data', (chunk: string) => (body += chunk));

@@ -13,7 +13,7 @@ interface BackgroundLocationData {
 TaskManager.defineTask<BackgroundLocationData>(BACKGROUND_TASK, async ({ data, error }) => {
   const latest = data?.locations.at(-1);
   if (error || !latest) return;
-  await checkIn(toCoordinates(latest)).catch(() => undefined);
+  await checkIn(toCoordinates(latest));
 });
 
 export function toCoordinates(location: Location.LocationObject): GeoPoint {
