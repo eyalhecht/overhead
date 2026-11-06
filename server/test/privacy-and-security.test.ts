@@ -25,9 +25,12 @@ const PLANE_OVERHEAD = {
   alt_baro: 3000,
   gs: 200,
   track: 270,
+  lat: 32.069,
+  lon: 34.7799,
   dst: 0.3,
   dir: 90,
 };
+const AREA_AROUND_PHONE = /\/32\.05\/(lon\/)?34\.75\//;
 
 interface SentRequest {
   url: string;
@@ -42,6 +45,7 @@ describe('privacy and security', () => {
   let push: FakePush;
   let watcher: Watcher;
   let app: ReturnType<typeof createApp>;
+  let clock: number;
 
   const fetchFn: typeof fetch = async (input, init) => {
     const url = String(input);
@@ -67,13 +71,20 @@ describe('privacy and security', () => {
       });
     }
     const users = createUserStore();
-    const sky = createSky(createPositionSource(fetchFn), createRouteSource({ fr24Token: 'fr24', fetchFn }));
+    clock = Date.now();
+    const positions = createPositionSource(fetchFn, { now: () => clock });
+    const sky = createSky(positions, createRouteSource({ fr24Token: 'fr24', fetchFn }));
     push = new FakePush();
-    watcher = createWatcher({ users, sky, push });
+    watcher = createWatcher({ users, sky, push, now: () => clock });
     app = createApp({ appKey: APP_KEY, users, watcher });
   });
 
   afterEach(() => vi.restoreAllMocks());
+
+  const nextTick = () => {
+    clock += 5000;
+    return watcher.tick();
+  };
 
   const checkIn = (cardTokens: string[] = []) =>
     request(app)
@@ -84,18 +95,18 @@ describe('privacy and security', () => {
 
   async function aWholeDay(): Promise<void> {
     await checkIn();
-    await watcher.tick();
+    await nextTick();
     await checkIn([CARD_TOKEN]);
-    await watcher.tick();
+    await nextTick();
     await request(app).get(`/sky?deviceId=${PHONE.deviceId}`).set('x-app-key', APP_KEY).expect(200);
     feedDown = true;
-    await watcher.tick();
+    await nextTick();
     feedDown = false;
     routesDown = true;
     push.result = 'failed';
-    await watcher.tick();
+    await nextTick();
     push.result = 'token-invalid';
-    await watcher.tick();
+    await nextTick();
   }
 
   it('never writes a location, a full device ID or a push token to the logs', async () => {
@@ -107,13 +118,13 @@ describe('privacy and security', () => {
     }
   });
 
-  it('gives the flight-position feeds only the rough location, never who is asking', async () => {
+  it('gives the flight-position feeds only the 10 km area around the phone, never who is asking', async () => {
     await aWholeDay();
 
     const feeds = sent.filter(({ url }) => url.includes('adsb'));
     expect(feeds.length).toBeGreaterThan(0);
     for (const { url, headers } of feeds) {
-      expect(url).toMatch(new RegExp(`/${PHONE.lat}/(lon/)?${PHONE.lon}/`));
+      expect(url).toMatch(AREA_AROUND_PHONE);
       for (const secret of [PHONE.deviceId, PHONE.startToken, CARD_TOKEN]) {
         expect(url + headers).not.toContain(secret);
       }
@@ -126,12 +137,12 @@ describe('privacy and security', () => {
       .set('x-app-key', APP_KEY)
       .send(registerRequest({ ...PHONE, lat: 32.0694321, lon: 34.7741234 }))
       .expect(204);
-    await watcher.tick();
+    await nextTick();
 
     const feeds = sent.filter(({ url }) => url.includes('adsb'));
     expect(feeds.length).toBeGreaterThan(0);
     for (const { url } of feeds) {
-      expect(url).toMatch(new RegExp(`/${PHONE.lat}/(lon/)?${PHONE.lon}/`));
+      expect(url).toMatch(AREA_AROUND_PHONE);
     }
   });
 
