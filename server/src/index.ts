@@ -20,7 +20,13 @@ const noise = loadNoiseModel(fileURLToPath(new URL('../data/anp', import.meta.ur
 if (!noise) console.warn('Noise data missing in server/data/anp, so only planes passing close get cards');
 const sky = createSky(createPositionSource(), createRouteSource({ fr24Token: config.fr24Token }), noise);
 const push = config.apns ? createApnsClient(config.apns) : createDryRunPushClient(simulateCardOpened);
-const watcher = createWatcher({ users, sky, push, demoLocation: config.demoLocation });
+const watcher = createWatcher({
+  users,
+  sky,
+  push,
+  demoLocation: config.demoLocation,
+  demoDevice: config.demoDevice,
+});
 
 const dryRunUser =
   !config.apns && config.demoLocation

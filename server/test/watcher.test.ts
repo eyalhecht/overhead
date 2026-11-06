@@ -47,6 +47,21 @@ describe('watcher', () => {
     expect(user.activity.cardTokens).toEqual([]);
   });
 
+  it('watches the demo spot for the named phone only', async () => {
+    const lax = { lat: 33.95, lon: -118.33 };
+    const watched: string[] = [];
+    sky.planesAt = (point) => {
+      watched.push(point.lat === lax.lat ? 'demo spot' : 'own location');
+      return [];
+    };
+    watcher = createWatcher({ users, sky, push, now: () => now, demoLocation: lax, demoDevice: 'phone-1' });
+    users.upsert(registerRequest({ deviceId: 'phone-2', startToken: 'start-token-2' }));
+
+    await watcher.tick();
+
+    expect(watched.sort()).toEqual(['demo spot', 'own location']);
+  });
+
   it('shows planes without a known route', async () => {
     sky.planes = [nearbyPlane('4XCDO', { route: null })];
     await watcher.tick();

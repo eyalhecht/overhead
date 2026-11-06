@@ -20,6 +20,16 @@ describe('config', () => {
     expect(config.demoLocation).toBeUndefined();
   });
 
+  it('moves only the named phone to the demo spot when pushing to Apple', () => {
+    const config = loadConfig({
+      ...PUSHING_TO_APPLE,
+      DEMO_LAT: '33.95',
+      DEMO_LON: '-118.33',
+      DEMO_DEVICE: '0B533EDE',
+    });
+    expect(config).toMatchObject({ demoLocation: { lat: 33.95, lon: -118.33 }, demoDevice: '0B533EDE' });
+  });
+
   it('keeps the demo spot for a dry run', () => {
     expect(loadConfig({ DEMO_LAT: '51.47', DEMO_LON: '-0.45' }).demoLocation).toEqual({
       lat: 51.47,
