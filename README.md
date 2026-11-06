@@ -8,7 +8,15 @@ An iPhone Lock Screen card that shows where the low plane above you is flying fr
 
 When a plane is predicted to pass within about 2.8 km of you, below 10,000 ft, a Live Activity appears about 45 seconds before it is closest, as Approaching. It says Above you now while it passes and closes about 20 seconds after it has Passed. The full behavior is in [PRODUCT.md](PRODUCT.md). The app shows the same card with an arrow that turns with your phone, above a map of the sky around you.
 
-<!-- Screenshots go here: docs/images/lock-screen.png and docs/images/app.png -->
+<p>
+  <img src="docs/images/lock-screen.png" width="260" alt="Lock Screen with an Overhead card: Above you now, FRA Frankfurt to BER Berlin, Lufthansa A321neo">
+  <img src="docs/images/app.png" width="260" alt="Overhead app: the same card with an arrow pointing ahead and to the right, a look-up angle of 28 degrees, and a map of planes around you">
+</p>
+<p>
+  <img src="docs/images/dynamic-island.png" width="400" alt="Dynamic Island, compact (plane icon, FRA, BER) and expanded (route, status, airline and aircraft)">
+</p>
+
+<sub>Mockups drawn from the app's layout code. Screenshots from a phone will replace them.</sub>
 
 ## Engineering highlights
 
