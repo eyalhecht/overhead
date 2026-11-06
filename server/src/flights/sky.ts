@@ -22,7 +22,7 @@ export function createSky(positions: PositionSource, routes: RouteSource, noise?
       const passing = aircraft
         .map((plane) => withStage(plane, noise))
         .filter((plane): plane is PassingAircraft => plane.stage !== null)
-        .sort(byStageThenDistance);
+        .sort(closeFirstThenStageThenDistance);
 
       return Promise.all(
         passing.map(async (plane) => ({
@@ -53,6 +53,11 @@ function withStage(
   return { ...plane, stage: heardStage(plane, heardDb), heardDb };
 }
 
-function byStageThenDistance(a: PassingAircraft, b: PassingAircraft): number {
-  return STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage) || a.distanceNm - b.distanceNm;
+function closeFirstThenStageThenDistance(a: PassingAircraft, b: PassingAircraft): number {
+  const onlyHeard = (plane: PassingAircraft) => (plane.heardDb === undefined ? 0 : 1);
+  return (
+    onlyHeard(a) - onlyHeard(b) ||
+    STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage) ||
+    a.distanceNm - b.distanceNm
+  );
 }
