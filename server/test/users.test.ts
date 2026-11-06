@@ -43,6 +43,13 @@ describe('createUserStore', () => {
     expect(users.all()[0]?.location.lat).toBe(51.5);
   });
 
+  it('replaces the old entry when a reinstalled app checks in with the same push token', () => {
+    const users = createUserStore();
+    users.upsert({ ...request('old-install'), startToken: 'start-token' });
+    users.upsert({ ...request('new-install'), startToken: 'start-token' });
+    expect(users.all().map((user) => user.deviceId)).toEqual(['new-install']);
+  });
+
   it('refuses new users beyond the limit', () => {
     const users = createUserStore({ maxUsers: 1 });
     users.upsert(request('first'));
