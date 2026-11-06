@@ -56,7 +56,10 @@ export function createApnsClient(
   function connection(): http2.ClientHttp2Session {
     if (!session || session.closed || session.destroyed) {
       const fresh = http2.connect(`https://${config.host}`);
-      fresh.on('error', () => fresh.destroy());
+      fresh.on('error', (error) => {
+        console.warn(`APNs connection failed: ${error.message}`);
+        fresh.destroy();
+      });
       fresh.setTimeout(IDLE_CONNECTION_MS, () => fresh.close());
       session = fresh;
     }
