@@ -4,7 +4,7 @@ import { cardsTooOld, isCheckInDue, MAX_SILENCE_MS } from './checkInSchedule';
 const MINUTE = 60_000;
 
 describe('when the phone checks in', () => {
-  const last = { activityTokens: 'card-1', at: 0 };
+  const last = { cardTokens: 'card-1', at: 0 };
 
   it('checks in when a new card token appears', () => {
     expect(isCheckInDue(last, ['card-1', 'card-2'], 1000)).toBe(true);

@@ -30,7 +30,7 @@ describe('watcher', () => {
   it('starts a card on the start token, then updates and ends it on the card token', async () => {
     sky.planes = [nearbyPlane('BAW1', { stage: 'approaching' })];
     await watcher.tick();
-    await watcher.reportActivityTokens(user, ['card-1']);
+    await watcher.reportCardTokens(user, ['card-1']);
     sky.planes = [nearbyPlane('BAW1', { stage: 'overhead' })];
     await tickAfter(5000);
     sky.planes = [];
@@ -59,7 +59,7 @@ describe('watcher', () => {
     sky.planes = [];
     await tickAfter(5000);
     await tickAfter(ACTIVITY_RULES.passedLingerMs);
-    await watcher.reportActivityTokens(user, ['late-card']);
+    await watcher.reportCardTokens(user, ['late-card']);
 
     expect(push.sent.at(-1)).toMatchObject({ event: 'end', token: 'late-card', props: { flight: 'BAW1' } });
   });
@@ -77,7 +77,7 @@ describe('watcher', () => {
     await watcher.tick();
     push.result = 'delivered';
     await tickAfter(5000);
-    await watcher.reportActivityTokens(user, ['card-1']);
+    await watcher.reportCardTokens(user, ['card-1']);
     await tickAfter(ACTIVITY_RULES.tokenWaitMs + 5000);
 
     expect(push.sent.map(({ event, token }) => `${event}:${token}`)).toEqual([

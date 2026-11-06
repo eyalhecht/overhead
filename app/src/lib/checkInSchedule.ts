@@ -3,13 +3,13 @@ import { CARD_MAX_AGE_MS } from '@overhead/shared/rules';
 export const MAX_SILENCE_MS = 60_000;
 
 export interface LastReport {
-  activityTokens: string;
+  cardTokens: string;
   at: number;
 }
 
 export function isCheckInDue(last: LastReport, openCardTokens: string[], now: number): boolean {
   const tokens = openCardTokens.join();
-  const tokensChanged = tokens !== '' && tokens !== last.activityTokens;
+  const tokensChanged = tokens !== '' && tokens !== last.cardTokens;
   return tokensChanged || now - last.at > MAX_SILENCE_MS;
 }
 

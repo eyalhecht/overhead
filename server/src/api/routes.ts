@@ -16,7 +16,7 @@ export function createRouter({ users, watcher }: RouterDependencies): Router {
     const isNewPhone = !users.find(request.deviceId);
     const user = users.upsert(request);
     if (isNewPhone) console.log(`${userLabel(user)} phone checked in`);
-    await watcher.reportActivityTokens(user, request.activityTokens);
+    await watcher.reportCardTokens(user, request.activityTokens);
     res.status(204).end();
   });
 

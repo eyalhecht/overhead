@@ -13,7 +13,7 @@ const MAINTENANCE_INTERVAL_MS = 5000;
 
 let startToken: string | undefined;
 const locationMemory = createLocationMemory(AsyncStorage);
-let lastReport: LastReport = { activityTokens: '', at: 0 };
+let lastReport: LastReport = { cardTokens: '', at: 0 };
 let cardFirstSeen = new Map<string, number>();
 
 export async function checkIn(location?: GeoPoint): Promise<void> {
@@ -21,7 +21,7 @@ export async function checkIn(location?: GeoPoint): Promise<void> {
   const target = await locationMemory.recall();
   if (!target) return;
 
-  const [deviceId, settings, activityTokens] = await Promise.all([
+  const [deviceId, settings, cardTokens] = await Promise.all([
     getIosIdForVendorAsync(),
     loadSettings(),
     openCardTokens(),
@@ -32,11 +32,11 @@ export async function checkIn(location?: GeoPoint): Promise<void> {
     deviceId,
     ...target,
     startToken: settings.liveActivities ? startToken : undefined,
-    activityTokens,
+    activityTokens: cardTokens,
     quietHours: settings.quietHours ? QUIET_HOURS : null,
     utcOffsetMinutes: -new Date().getTimezoneOffset(),
   });
-  lastReport = { activityTokens: activityTokens.join(), at: Date.now() };
+  lastReport = { cardTokens: cardTokens.join(), at: Date.now() };
 }
 
 export function startCheckInService(): void {

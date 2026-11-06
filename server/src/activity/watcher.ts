@@ -18,7 +18,7 @@ export interface Watcher {
   start(): void;
   stop(): void;
   tick(): Promise<void>;
-  reportActivityTokens(user: User, tokens: string[]): Promise<void>;
+  reportCardTokens(user: User, tokens: string[]): Promise<void>;
   planesFor(user: User): NearbyPlane[];
 }
 
@@ -76,7 +76,7 @@ export function createWatcher({
     });
   }
 
-  async function reportActivityTokens(user: User, tokens: string[]): Promise<void> {
+  async function reportCardTokens(user: User, tokens: string[]): Promise<void> {
     const { state, pushes } = receiveCardTokens(user.activity, tokens);
     user.activity = state;
     await send(user, pushes);
@@ -100,7 +100,7 @@ export function createWatcher({
       clearTimeout(timer);
     },
     tick,
-    reportActivityTokens,
+    reportCardTokens,
     planesFor: (user) => planesSeen.get(user) ?? [],
   };
 }

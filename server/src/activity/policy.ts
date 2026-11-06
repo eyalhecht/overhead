@@ -25,7 +25,7 @@ export interface ShowingCard {
 export interface ActivityState {
   showing?: ShowingCard;
   lastProps?: ActivityProps;
-  overheadSince: Record<string, number>;
+  firstSeenAt: Record<string, number>;
   goneSince?: number;
   recentStarts: number[];
   pausedUntil?: number;
@@ -59,7 +59,7 @@ export interface StepResult {
 
 export const initialActivityState = (): ActivityState => ({
   recentStarts: [],
-  overheadSince: {},
+  firstSeenAt: {},
   cardTokens: [],
   endedTokens: [],
 });
@@ -74,9 +74,9 @@ export function nextStep(state: ActivityState, { planes, now, canStart }: StepIn
     };
   }
 
-  const overheadSince = trackOverhead(state.overheadSince, planes, now);
-  const passing = planes.filter((plane) => !isCircling(overheadSince, plane, now));
-  const next: ActivityState = { ...state, overheadSince };
+  const firstSeenAt = trackFirstSeen(state.firstSeenAt, planes, now);
+  const passing = planes.filter((plane) => !isCircling(firstSeenAt, plane, now));
+  const next: ActivityState = { ...state, firstSeenAt };
   const [main] = passing.filter(isOnCard);
   const nextPlaneOnItsWay = passing.some((plane) => plane.stage === 'inbound');
 
@@ -206,10 +206,10 @@ function none(state: ActivityState): StepResult {
   return { action: { type: 'none' }, state };
 }
 
-function isStartDropped(showing: ShowingCard | undefined, hasActivityToken: boolean, now: number): boolean {
+function isStartDropped(showing: ShowingCard | undefined, hasCardToken: boolean, now: number): boolean {
   return (
     showing?.awaitingTokenSince !== undefined &&
-    !hasActivityToken &&
+    !hasCardToken &&
     now - showing.awaitingTokenSince > ACTIVITY_RULES.tokenWaitMs
   );
 }
@@ -223,7 +223,7 @@ function startsWithinHour(starts: number[], now: number): number[] {
   return starts.filter((startedAt) => now - startedAt < HOUR_MS);
 }
 
-function trackOverhead(
+function trackFirstSeen(
   previous: Record<string, number>,
   planes: NearbyPlane[],
   now: number,
@@ -231,8 +231,8 @@ function trackOverhead(
   return Object.fromEntries(planes.map(({ flight }) => [flight, previous[flight] ?? now]));
 }
 
-function isCircling(overheadSince: Record<string, number>, plane: NearbyPlane, now: number): boolean {
-  return now - (overheadSince[plane.flight] ?? now) > ACTIVITY_RULES.circlingLimitMs;
+function isCircling(firstSeenAt: Record<string, number>, plane: NearbyPlane, now: number): boolean {
+  return now - (firstSeenAt[plane.flight] ?? now) > ACTIVITY_RULES.circlingLimitMs;
 }
 
 function sameCard(a: ActivityProps, b: ActivityProps): boolean {
