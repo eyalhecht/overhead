@@ -18,6 +18,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - name: Keep EASA noise data out of the repo
+        run: "! git ls-files | grep -iE '[.]csv$|anp'"
 
   secrets:
     runs-on: ubuntu-latest
