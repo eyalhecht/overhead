@@ -10,6 +10,7 @@ export const ACTIVITY_RULES = {
   forgetGoneAfterMs: 2 * 60_000,
   renewAfterMs: 20 * 60_000,
   maxStartsPerHour: 10,
+  startsKeptForClosePlanes: 3,
   tokenWaitMs: 60_000,
   backoffMs: 15 * 60_000,
   rememberedEndedCards: 20,
@@ -87,8 +88,9 @@ export function nextStep(state: ActivityState, { planes, now, canStart }: StepIn
 
   if (!showing) {
     if (state.cardTokens.length > 0) return endLeftoverCards(next);
-    if (!main || !canStart || !mayStart(state, now)) return none(next);
-    return start(next, cardProps(main), now);
+    const first = passing.filter(isOnCard).find((plane) => mayStart(state, now, plane));
+    if (!first || !canStart) return none(next);
+    return start(next, cardProps(first), now);
   }
 
   const onlyCircling = planes.length > 0 && passing.length === 0;
@@ -219,9 +221,13 @@ function isStartDropped(showing: ShowingCard | undefined, hasCardToken: boolean,
   );
 }
 
-function mayStart(state: ActivityState, now: number): boolean {
+// Planes that are only heard leave a few starts each hour for planes passing close.
+function mayStart(state: ActivityState, now: number, plane: NearbyPlane): boolean {
   const paused = state.pausedUntil !== undefined && now < state.pausedUntil;
-  return !paused && startsWithinHour(state.recentStarts, now).length < ACTIVITY_RULES.maxStartsPerHour;
+  const limit =
+    ACTIVITY_RULES.maxStartsPerHour -
+    (plane.heardDb === undefined ? 0 : ACTIVITY_RULES.startsKeptForClosePlanes);
+  return !paused && startsWithinHour(state.recentStarts, now).length < limit;
 }
 
 function startsWithinHour(starts: number[], now: number): number[] {

@@ -201,6 +201,23 @@ describe('the sky above a user', () => {
     expect(plane).toMatchObject({ airline: 'Israir', aircraft: 'A320', route: { to: 'TLV' } });
   });
 
+  it('adds planes passing too far for the close rule when they are loud enough to hear', async () => {
+    const farPast = { distanceNm: 2.4, bearingDeg: 0, trackDeg: 270 };
+    const noise = { peakDb: (plane: Aircraft) => (plane.flight === 'LOUD1' ? 52 : 40) };
+    const sky = createSky(
+      fixedFeed([aircraft('LOUD1', farPast), aircraft('QUIET1', farPast), aircraft('ELY001', {})]),
+      noRoutes,
+      noise,
+    );
+
+    const planes = await sky.planesAbove(BEN_GURION);
+
+    expect(planes.map(({ flight, stage, heardDb }) => ({ flight, stage, heardDb }))).toEqual([
+      { flight: 'ELY001', stage: 'overhead', heardDb: undefined },
+      { flight: 'LOUD1', stage: 'overhead', heardDb: 52 },
+    ]);
+  });
+
   it('keeps a plane whose route is unknown, with what we do know', async () => {
     const sky = createSky(fixedFeed([aircraft('4XCDO', { typeCode: 'C25A' })]), noRoutes);
 

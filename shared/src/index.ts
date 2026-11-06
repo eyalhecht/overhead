@@ -28,6 +28,7 @@ export interface NearbyPlane {
   bearingDeg: number;
   stage: PassStage;
   route: Route | null;
+  heardDb?: number;
 }
 
 export interface ActivityProps {

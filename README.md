@@ -6,7 +6,7 @@ An iPhone Lock Screen card that shows where the low plane above you is flying fr
 
 **Status:** private beta on TestFlight (November 2026). The server runs on one small VM. **License:** all rights reserved; the code is public to read, not to reuse ([LICENSE](LICENSE)).
 
-When a plane is predicted to pass within about 2.8 km of you, below 10,000 ft, a Live Activity appears about 45 seconds before it is closest, as Approaching. It says Above you now while it passes and closes about 20 seconds after it has Passed. The full behavior is in [PRODUCT.md](PRODUCT.md). The app shows the same card with an arrow that turns with your phone, above a map of the sky around you.
+When a plane is predicted to pass within about 2.8 km of you below 10,000 ft, or to be loud enough to hear from its type, engine power and distance, a Live Activity appears about 45 seconds before it is closest, as Approaching. It says Above you now while it passes and closes about 20 seconds after it has Passed. The full behavior is in [PRODUCT.md](PRODUCT.md). The app shows the same card with an arrow that turns with your phone, above a map of the sky around you.
 
 <p>
   <img src="docs/images/lock-screen.png" width="260" alt="Lock Screen with an Overhead card: Above you now, FRA Frankfurt to BER Berlin, Lufthansa A321neo">

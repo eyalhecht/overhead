@@ -175,6 +175,21 @@ describe('nextStep', () => {
     expect(starts).toEqual([...Array(10).fill('start'), 'none']);
   });
 
+  it('keeps the last starts of the hour for planes passing close, not ones only heard', () => {
+    const sim = new Simulation();
+    const startWith = (next: NearbyPlane) => {
+      const action = sim.step([next]);
+      sim.confirmCard();
+      sim.step([]);
+      sim.step([], ACTIVITY_RULES.passedLingerMs);
+      return action;
+    };
+    const heard = (flight: string) => nearbyPlane(flight, { heardDb: 52 });
+    const starts = Array.from({ length: 8 }, (_, index) => startWith(heard(`HRD${index}`)));
+    expect(starts).toEqual([...Array(7).fill('start'), 'none']);
+    expect(startWith(plane('CLOSE1'))).toBe('start');
+  });
+
   it('backs off when the phone never confirms the card, and pauses new cards', () => {
     const sim = new Simulation();
     expect(sim.step([plane('BAW1')])).toBe('start');

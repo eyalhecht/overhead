@@ -1,8 +1,10 @@
+import { fileURLToPath } from 'node:url';
 import { createWatcher } from './activity/watcher.js';
 import { createApp } from './api/app.js';
 import { configWarnings, loadConfig } from './config.js';
 import { createPositionSource } from './flights/positions.js';
 import { createRouteSource } from './flights/routes.js';
+import { loadNoiseModel } from './flights/noise.js';
 import { createSky } from './flights/sky.js';
 import { createApnsClient, createDryRunPushClient } from './push/apns.js';
 import { createUserStore, memoryStorage, sqliteStorage } from './users.js';
@@ -14,7 +16,9 @@ for (const warning of configWarnings(config)) console.warn(`Config: ${warning}`)
 const users = createUserStore({
   storage: config.databasePath ? sqliteStorage(config.databasePath) : memoryStorage(),
 });
-const sky = createSky(createPositionSource(), createRouteSource({ fr24Token: config.fr24Token }));
+const noise = loadNoiseModel(fileURLToPath(new URL('../data/anp', import.meta.url)));
+if (!noise) console.warn('Noise data missing in server/data/anp, so only planes passing close get cards');
+const sky = createSky(createPositionSource(), createRouteSource({ fr24Token: config.fr24Token }), noise);
 const push = config.apns ? createApnsClient(config.apns) : createDryRunPushClient(simulateCardOpened);
 const watcher = createWatcher({ users, sky, push, demoLocation: config.demoLocation });
 

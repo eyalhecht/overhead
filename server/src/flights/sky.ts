@@ -1,7 +1,8 @@
 import type { GeoPoint, NearbyPlane, PassStage } from '@overhead/shared';
 import { aircraftName } from './aircraft.js';
 import { airlineName } from './airlines.js';
-import { passStage, type Aircraft } from './geometry.js';
+import { heardStage, passStage, type Aircraft } from './geometry.js';
+import type { NoiseModel } from './noise.js';
 import type { PositionSource } from './positions.js';
 import type { RouteSource } from './routes.js';
 
@@ -12,14 +13,14 @@ export interface Sky {
   planesAbove(point: GeoPoint): Promise<NearbyPlane[]>;
 }
 
-type PassingAircraft = Aircraft & { stage: PassStage };
+type PassingAircraft = Aircraft & { stage: PassStage; heardDb?: number };
 
-export function createSky(positions: PositionSource, routes: RouteSource): Sky {
+export function createSky(positions: PositionSource, routes: RouteSource, noise?: NoiseModel): Sky {
   return {
     async planesAbove(point) {
       const aircraft = await positions.aircraftNear(point, SEARCH_RADIUS_NM);
       const passing = aircraft
-        .map((plane) => ({ ...plane, stage: passStage(plane) }))
+        .map((plane) => withStage(plane, noise))
         .filter((plane): plane is PassingAircraft => plane.stage !== null)
         .sort(byStageThenDistance);
 
@@ -35,10 +36,21 @@ export function createSky(positions: PositionSource, routes: RouteSource): Sky {
           bearingDeg: plane.bearingDeg,
           stage: plane.stage,
           route: await routes.routeFor(plane.flight),
+          ...(plane.heardDb !== undefined && { heardDb: plane.heardDb }),
         })),
       );
     },
   };
+}
+
+function withStage(
+  plane: Aircraft,
+  noise?: NoiseModel,
+): Aircraft & { stage: PassStage | null; heardDb?: number } {
+  const stage = passStage(plane);
+  if (stage || !noise) return { ...plane, stage };
+  const heardDb = noise.peakDb(plane);
+  return { ...plane, stage: heardStage(plane, heardDb), heardDb };
 }
 
 function byStageThenDistance(a: PassingAircraft, b: PassingAircraft): number {
