@@ -43,9 +43,12 @@ const server = createApp({ appKey: config.appKey, users, watcher }).listen(confi
 });
 watcher.start();
 
-process.once('SIGTERM', () => {
-  server.close();
-  void watcher.stop().then(() => {
+let shuttingDown = false;
+process.on('SIGTERM', () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  const requestsDone = new Promise<void>((resolve) => server.close(() => resolve()));
+  void Promise.all([requestsDone, watcher.stop()]).then(() => {
     users.close();
     process.exit(0);
   });
