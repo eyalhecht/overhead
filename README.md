@@ -65,7 +65,7 @@ app/      Expo SDK 58 + Expo Router
 
 ## Try it
 
-The app is a private beta on TestFlight, by invitation only.
+The app is a private beta on TestFlight. To try it, email [eyalhe3@gmail.com](mailto:eyalhe3@gmail.com) for an invite.
 
 ## Run the tests
 
