@@ -103,7 +103,6 @@ Waiting for a public launch, because they don't matter for this goal: running co
 
 - The founder lives and walks under the Ben Gurion approach, so he sees far more low planes than most people.
 - It assumes an unasked card several times a day is welcome.
-- It is partly built because it is fun to build and useful for interviews.
 
 ## Which planes get a card
 
@@ -154,7 +153,6 @@ There are no cards between **22:00 and 07:00**. This is on by default and can be
 ## Later
 
 - **Collecting:** every plane that passes earns coins (or points, name to be decided), and enough of them unlock badges.
-- **New card designs:** the Wolt-style concepts are on the prototype canvas.
 
 ## Known limits
 

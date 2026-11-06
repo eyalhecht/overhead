@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Throwaway self-signed localhost key used only by the fake Apple Push server in tests"
+paths = ['''server/test/fixtures/localhost-key\.pem''']
