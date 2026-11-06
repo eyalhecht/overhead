@@ -17,6 +17,14 @@ let lastReport: LastReport = { cardTokens: '', at: 0 };
 let cardFirstSeen = new Map<string, number>();
 
 export async function checkIn(location?: GeoPoint): Promise<void> {
+  try {
+    await report(location);
+  } catch (error) {
+    console.warn(`Check-in failed: ${(error as Error).message}`);
+  }
+}
+
+async function report(location?: GeoPoint): Promise<void> {
   if (location) await locationMemory.remember(location);
   const target = await locationMemory.recall();
   if (!target) return;
@@ -42,23 +50,22 @@ export async function checkIn(location?: GeoPoint): Promise<void> {
 export function startCheckInService(): void {
   addPushToStartTokenListener(({ activityPushToStartToken }) => {
     startToken = activityPushToStartToken;
-    void safeCheckIn();
+    void checkIn();
   });
-  onSettingsChange(() => void safeCheckIn());
-  setInterval(() => void maintain(), MAINTENANCE_INTERVAL_MS);
+  onSettingsChange(() => void checkIn());
+  scheduleMaintenance();
+}
+
+function scheduleMaintenance(): void {
+  setTimeout(async () => {
+    await maintain();
+    scheduleMaintenance();
+  }, MAINTENANCE_INTERVAL_MS);
 }
 
 async function maintain(): Promise<void> {
   closeOldCards();
-  if (isCheckInDue(lastReport, await openCardTokens(), Date.now())) await safeCheckIn();
-}
-
-async function safeCheckIn(): Promise<void> {
-  try {
-    await checkIn();
-  } catch (error) {
-    console.warn(`Check-in failed: ${(error as Error).message}`);
-  }
+  if (isCheckInDue(lastReport, await openCardTokens(), Date.now())) await checkIn();
 }
 
 async function openCardTokens(): Promise<string[]> {
