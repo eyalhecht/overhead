@@ -116,9 +116,8 @@ function interpretResponse(event: LiveActivityEvent, status: number, body: strin
   if (status === 200) return 'delivered';
   const reason = parseReason(body);
   console.warn(`APNs rejected ${event} (${status} ${reason ?? 'no reason'})`);
-  return status === 410 || (reason !== undefined && INVALID_TOKEN_REASONS.has(reason))
-    ? 'token-invalid'
-    : 'failed';
+  if (status === 410 || (reason !== undefined && INVALID_TOKEN_REASONS.has(reason))) return 'token-invalid';
+  return status === 429 || status >= 500 ? 'failed' : 'rejected';
 }
 
 function parseReason(body: string): string | undefined {

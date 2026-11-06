@@ -297,6 +297,19 @@ describe('card tokens', () => {
     expect(state.cardTokens).toEqual([]);
   });
 
+  it('stops ending a leftover card that Apple refuses for good', () => {
+    const sim = new Simulation();
+    sim.confirmCard();
+    expect(sim.step([])).toBe('end');
+    sim.state = afterPush(
+      sim.state,
+      { token: 'card-1', event: 'end', props: sim.state.lastProps! },
+      'rejected',
+    );
+    expect(sim.state.cardTokens).toEqual([]);
+    expect(sim.step([])).toBe('none');
+  });
+
   it('drops a card token Apple reports as invalid', () => {
     const sim = new Simulation();
     sim.step([plane('BAW1')]);

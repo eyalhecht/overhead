@@ -1,7 +1,7 @@
 import { isOnCard, type ActivityProps, type NearbyPlane, type RegisterRequest } from '@overhead/shared';
 
 export type LiveActivityEvent = 'start' | 'update' | 'end';
-export type PushResult = 'delivered' | 'token-invalid' | 'failed' | 'no-answer';
+export type PushResult = 'delivered' | 'no-answer' | 'failed' | 'rejected' | 'token-invalid';
 
 export const ACTIVITY_RULES = {
   keepAliveMs: 30_000,
@@ -142,7 +142,7 @@ export function receiveCardTokens(
 export function afterPush(state: ActivityState, { token, event }: Push, result: PushResult): ActivityState {
   if (event === 'start') return result === 'delivered' || result === 'no-answer' ? state : forgetStart(state);
   if (result === 'token-invalid') return { ...state, cardTokens: without(state.cardTokens, token) };
-  if (event === 'end' && result === 'delivered') {
+  if ((event === 'end' && result === 'delivered') || result === 'rejected') {
     return {
       ...state,
       cardTokens: without(state.cardTokens, token),

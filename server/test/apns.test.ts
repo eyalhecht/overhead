@@ -173,6 +173,11 @@ describe('APNs client', () => {
     expect(await apns.send('old-token', 'update', card)).toBe('token-invalid');
   });
 
+  it('reports a push Apple refuses for good, so it is not sent again', async () => {
+    apple.reply = { status: 400, reason: 'BadExpirationDate' };
+    expect(await apns.send('card-token', 'end', card)).toBe('rejected');
+  });
+
   it.each([
     [429, 'TooManyRequests'],
     [500, 'InternalServerError'],
