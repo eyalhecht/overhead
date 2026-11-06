@@ -56,7 +56,10 @@ export function createApnsClient(
   function connection(): http2.ClientHttp2Session {
     if (!session || session.closed || session.destroyed) {
       const fresh = http2.connect(`https://${config.host}`);
-      fresh.on('error', () => fresh.destroy());
+      fresh.on('error', (error) => {
+        console.warn(`APNs connection failed: ${error.message}`);
+        fresh.destroy();
+      });
       fresh.setTimeout(IDLE_CONNECTION_MS, () => fresh.close());
       session = fresh;
     }
@@ -116,9 +119,8 @@ function interpretResponse(event: LiveActivityEvent, status: number, body: strin
   if (status === 200) return 'delivered';
   const reason = parseReason(body);
   console.warn(`APNs rejected ${event} (${status} ${reason ?? 'no reason'})`);
-  return status === 410 || (reason !== undefined && INVALID_TOKEN_REASONS.has(reason))
-    ? 'token-invalid'
-    : 'failed';
+  if (status === 410 || (reason !== undefined && INVALID_TOKEN_REASONS.has(reason))) return 'token-invalid';
+  return status === 429 || status >= 500 ? 'failed' : 'rejected';
 }
 
 function parseReason(body: string): string | undefined {

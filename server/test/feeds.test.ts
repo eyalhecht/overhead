@@ -53,12 +53,52 @@ describe('a real adsb.fi response captured over Ben Gurion', () => {
 });
 
 describe('position feeds', () => {
-  it('asks adsb.fi first for the circle around the user', async () => {
+  it('asks adsb.fi first for the 10 km area around the user, wide enough to cover their circle', async () => {
     const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(json({ ac: [] }));
     await createPositionSource(fetchFn).aircraftNear(BEN_GURION, 3);
     expect(String(fetchFn.mock.calls[0]?.[0])).toBe(
-      'https://opendata.adsb.fi/api/v3/lat/32.0055/lon/34.8854/dist/3',
+      'https://opendata.adsb.fi/api/v3/lat/32.05/lon/34.85/dist/7.5',
     );
+  });
+
+  it('measures each plane from the user, not from the middle of the area', async () => {
+    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(json(capturedOverBenGurion));
+    const parsed = parseReadsbResponse(capturedOverBenGurion);
+    const aircraft = await createPositionSource(fetchFn).aircraftNear(BEN_GURION, 10);
+
+    for (const plane of aircraft) {
+      const expected = bearingAndDistance(BEN_GURION, parsed.find(({ id }) => id === plane.id) ?? BEN_GURION);
+      expect(plane.distanceNm).toBeCloseTo(expected.distanceNm, 1);
+      expect(plane.bearingDeg).toBeCloseTo(expected.bearingDeg, 0);
+    }
+    expect(aircraft.length).toBeGreaterThan(0);
+  });
+
+  it("fetches an area once for everyone in it and leaves out planes beyond each user's circle", async () => {
+    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(json(capturedOverBenGurion));
+    const positions = createPositionSource(fetchFn);
+    const [near, wide] = await Promise.all([
+      positions.aircraftNear(BEN_GURION, 3),
+      positions.aircraftNear({ lat: 32.01, lon: 34.89 }, 3),
+    ]);
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(near.every(({ distanceNm }) => distanceNm <= 3)).toBe(true);
+    expect(wide.every(({ distanceNm }) => distanceNm <= 3)).toBe(true);
+  });
+
+  it('waits a second between calls to the same feed, as adsb.fi asks', async () => {
+    vi.useFakeTimers();
+    const fetchFn = vi.fn<typeof fetch>().mockImplementation(async () => json({ ac: [] }));
+    const positions = createPositionSource(fetchFn, { now: Date.now });
+    const first = positions.aircraftNear(BEN_GURION, 3);
+    const second = positions.aircraftNear({ lat: 31.5, lon: 34.5 }, 3);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.all([first, second]);
+    vi.useRealTimers();
+    expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
   it('falls back to adsb.lol when adsb.fi rate-limits us', async () => {
@@ -67,7 +107,7 @@ describe('position feeds', () => {
       .mockResolvedValueOnce(json({}, 429))
       .mockResolvedValueOnce(json(capturedOverBenGurion));
 
-    const aircraft = await createPositionSource(fetchFn).aircraftNear(BEN_GURION, 3);
+    const aircraft = await createPositionSource(fetchFn).aircraftNear(BEN_GURION, 10);
 
     expect(String(fetchFn.mock.calls[1]?.[0])).toContain('api.adsb.lol');
     expect(aircraft).toHaveLength(2);

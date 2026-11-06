@@ -75,7 +75,9 @@ export function createWatcher({
     );
     for (const { push, result } of answered) {
       user.activity = afterPush(user.activity, push, result);
-      if (push.event === 'start' && result === 'token-invalid') user.startToken = undefined;
+      if (push.event === 'start' && result === 'token-invalid' && user.startToken === push.token) {
+        user.startToken = undefined;
+      }
       if (push.event === 'start' && result === 'delivered') {
         console.log(`${userLabel(user)} card started: ${push.props.flight} ${push.props.stage}`);
       }

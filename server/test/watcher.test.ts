@@ -129,6 +129,21 @@ describe('watcher', () => {
     expect(starts).toHaveLength(ACTIVITY_RULES.maxStartsPerHour);
   });
 
+  it('keeps a new start token when a push to the old one comes back invalid', async () => {
+    let answerOldPush: (() => void) | undefined;
+    push.send = (token) =>
+      new Promise((resolve) => {
+        answerOldPush = () => resolve(token === 'start-token' ? 'token-invalid' : 'delivered');
+      });
+    sky.planes = [nearbyPlane('BAW1')];
+    const tick = watcher.tick();
+    await vi.waitFor(() => expect(answerOldPush).toBeDefined());
+    users.upsert(registerRequest({ startToken: 'new-start-token' }));
+    answerOldPush?.();
+    await tick;
+    expect(user.startToken).toBe('new-start-token');
+  });
+
   it('forgets a start token that Apple reports as invalid', async () => {
     push.result = 'token-invalid';
     sky.planes = [nearbyPlane('BAW1')];

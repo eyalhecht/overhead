@@ -13,6 +13,7 @@ export interface AppDependencies extends RouterDependencies {
 export function createApp({ appKey, ...routerDependencies }: AppDependencies): Express {
   const app = express();
   app.disable('x-powered-by');
+  app.get('/health', (_req, res) => res.status(204).end());
   if (appKey) app.use(requireAppKey(appKey));
   app.use(express.json({ limit: MAX_BODY_SIZE }));
   app.use(createRouter(routerDependencies));

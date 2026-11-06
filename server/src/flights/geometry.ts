@@ -1,4 +1,4 @@
-import type { PassStage } from '@overhead/shared';
+import type { GeoPoint, PassStage } from '@overhead/shared';
 
 const OVERHEAD_RADIUS_NM = 1.5;
 const OVERHEAD_MAX_ALTITUDE_FT = 10_000;
@@ -6,6 +6,7 @@ const APPROACH_LEAD_SECONDS = 45;
 const INBOUND_LEAD_SECONDS = 120;
 const HOVER_SPEED_KT = 40;
 const SECONDS_PER_HOUR = 3600;
+const EARTH_RADIUS_NM = 3440.065;
 
 export interface Aircraft {
   id: string;
@@ -44,14 +45,30 @@ export function closestApproach(aircraft: Aircraft): ClosestApproach {
   return { distanceNm: round(Math.hypot(closest.x, closest.y), 2), inSeconds: Math.round(inSeconds) };
 }
 
+export function distanceAndBearing(
+  from: GeoPoint,
+  to: GeoPoint,
+): Pick<Aircraft, 'distanceNm' | 'bearingDeg'> {
+  const east = toRadians(to.lon - from.lon) * Math.cos(toRadians((from.lat + to.lat) / 2));
+  const north = toRadians(to.lat - from.lat);
+  return {
+    distanceNm: Math.hypot(east, north) * EARTH_RADIUS_NM,
+    bearingDeg: ((Math.atan2(east, north) * 180) / Math.PI + 360) % 360,
+  };
+}
+
 interface Vector {
   x: number;
   y: number;
 }
 
 function toVector(length: number, bearingDeg: number): Vector {
-  const radians = (bearingDeg * Math.PI) / 180;
+  const radians = toRadians(bearingDeg);
   return { x: length * Math.sin(radians), y: length * Math.cos(radians) };
+}
+
+function toRadians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
 }
 
 function dot(u: Vector, v: Vector): number {

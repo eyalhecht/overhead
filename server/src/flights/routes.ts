@@ -28,30 +28,36 @@ export function createRouteSource({
   now = Date.now,
 }: RouteSourceOptions): RouteSource {
   const provider = fr24Token ? flightradar24(fr24Token, fetchFn, now) : adsbdb(fetchFn);
-  const cache = new Map<string, Route | null>();
+  const cache = new Map<string, Promise<Route | null>>();
   const failedAt = new Map<string, number>();
   let cacheDay = '';
 
+  async function lookUp(flight: string): Promise<Route | null> {
+    try {
+      return await provider(flight);
+    } catch (error) {
+      cache.delete(flight);
+      failedAt.set(flight, now());
+      console.warn(`Route lookup failed for ${flight}: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
   return {
-    async routeFor(flight) {
+    routeFor(flight) {
       const today = new Date(now()).toISOString().slice(0, 10);
       if (today !== cacheDay) {
         cache.clear();
+        failedAt.clear();
         cacheDay = today;
       }
-      if (cache.has(flight)) return cache.get(flight) ?? null;
-      if (now() - (failedAt.get(flight) ?? -Infinity) < FAILED_LOOKUP_RETRY_MS) return null;
+      const cached = cache.get(flight);
+      if (cached) return cached;
+      if (now() - (failedAt.get(flight) ?? -Infinity) < FAILED_LOOKUP_RETRY_MS) return Promise.resolve(null);
 
-      try {
-        const route = await provider(flight);
-        cache.set(flight, route);
-        failedAt.delete(flight);
-        return route;
-      } catch (error) {
-        failedAt.set(flight, now());
-        console.warn(`Route lookup failed for ${flight}: ${(error as Error).message}`);
-        return null;
-      }
+      const route = lookUp(flight);
+      cache.set(flight, route);
+      return route;
     },
   };
 }

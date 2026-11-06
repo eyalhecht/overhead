@@ -32,8 +32,8 @@ gcloud compute ssh "$VM" --project "$PROJECT" --zone "$ZONE" --quiet --command "
   sudo systemctl daemon-reload
   sudo systemctl enable --now overhead caddy
   sudo systemctl restart overhead
-  sleep 5
-  systemctl is-active --quiet overhead || { sudo journalctl -u overhead -n 30 --no-pager; exit 1; }
+  for attempt in \$(seq 15); do curl -fsS http://127.0.0.1:8080/health && break; sleep 2; done
+  curl -fsS http://127.0.0.1:8080/health || { sudo journalctl -u overhead -n 30 --no-pager; exit 1; }
   sudo systemctl reload caddy
 "
 echo "Deployed $RELEASE"

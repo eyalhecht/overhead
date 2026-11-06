@@ -16,5 +16,6 @@ The words the code, tests and docs use for the domain. Keep new code to these na
 - **Sky snapshot:** the planes and the card from one watcher check, served to the app by `GET /sky`.
 - **Check-in:** a phone telling the server its rough location, settings and tokens (`POST /register`).
 - **Rough location:** a location rounded to about 100 m. It is the only location that leaves or is saved on the phone.
+- **Area:** a cell of about 10 km. Phones in the same area share one flight-feed call per tick, and the feeds only ever see its center.
 - **Quiet hours:** 22:00 to 07:00 by default, when no cards start.
 - **User store:** the server's users, kept in SQLite when `DATABASE_PATH` is set. A phone silent for 30 days is forgotten.

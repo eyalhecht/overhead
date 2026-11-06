@@ -1,6 +1,6 @@
 import { createWatcher } from './activity/watcher.js';
 import { createApp } from './api/app.js';
-import { loadConfig } from './config.js';
+import { configWarnings, loadConfig } from './config.js';
 import { createPositionSource } from './flights/positions.js';
 import { createRouteSource } from './flights/routes.js';
 import { createSky } from './flights/sky.js';
@@ -10,6 +10,7 @@ import { createUserStore, memoryStorage, sqliteStorage } from './users.js';
 const DRY_RUN_DEVICE = 'dry-run-device';
 
 const config = loadConfig();
+for (const warning of configWarnings(config)) console.warn(`Config: ${warning}`);
 const users = createUserStore({
   storage: config.databasePath ? sqliteStorage(config.databasePath) : memoryStorage(),
 });
@@ -42,9 +43,12 @@ const server = createApp({ appKey: config.appKey, users, watcher }).listen(confi
 });
 watcher.start();
 
-process.once('SIGTERM', () => {
-  server.close();
-  void watcher.stop().then(() => {
+let shuttingDown = false;
+process.on('SIGTERM', () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  const requestsDone = new Promise<void>((resolve) => server.close(() => resolve()));
+  void Promise.all([requestsDone, watcher.stop()]).then(() => {
     users.close();
     process.exit(0);
   });

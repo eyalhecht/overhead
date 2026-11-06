@@ -41,17 +41,26 @@ export interface Config {
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = EnvSchema.parse(env);
+  const apns = apnsConfig(parsed);
   return {
     port: parsed.PORT,
     appKey: parsed.APP_KEY,
     fr24Token: parsed.FR24_TOKEN,
     databasePath: parsed.DATABASE_PATH,
-    apns: apnsConfig(parsed),
+    apns,
     demoLocation:
-      parsed.DEMO_LAT !== undefined && parsed.DEMO_LON !== undefined
+      !apns && parsed.DEMO_LAT !== undefined && parsed.DEMO_LON !== undefined
         ? { lat: parsed.DEMO_LAT, lon: parsed.DEMO_LON }
         : undefined,
   };
+}
+
+export function configWarnings({ apns, appKey, databasePath }: Config): string[] {
+  if (!apns) return [];
+  return [
+    ...(appKey ? [] : ['APP_KEY is not set, so anyone can call the API']),
+    ...(databasePath ? [] : ['DATABASE_PATH is not set, so a restart forgets every phone']),
+  ];
 }
 
 function apnsConfig(env: z.infer<typeof EnvSchema>): ApnsConfig | undefined {
