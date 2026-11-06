@@ -5,7 +5,6 @@ import { userLabel, type User, type UserStore } from '../users.js';
 import { afterPush, isQuietTime, nextStep, pushesFor, receiveCardTokens, type Push } from './policy.js';
 
 const TICK_INTERVAL_MS = 5000;
-const MAX_PHONES_AT_ONCE = 8;
 
 export interface WatcherDependencies {
   users: UserStore;
@@ -17,7 +16,7 @@ export interface WatcherDependencies {
 
 export interface Watcher {
   start(): void;
-  stop(): Promise<void>;
+  stop(): void;
   tick(): Promise<void>;
   reportCardTokens(user: User, tokens: string[]): Promise<void>;
   planesFor(user: User): NearbyPlane[];
@@ -32,22 +31,15 @@ export function createWatcher({
 }: WatcherDependencies): Watcher {
   let timer: NodeJS.Timeout | undefined;
   let running = false;
-  let currentTick: Promise<void> = Promise.resolve();
   const planesSeen = new WeakMap<User, NearbyPlane[]>();
 
   async function tick(): Promise<void> {
-    const waiting = users.all();
-    const lane = async () => {
-      for (let user = waiting.shift(); user; user = waiting.shift()) await watchSafely(user);
-    };
-    await Promise.all(Array.from({ length: Math.min(MAX_PHONES_AT_ONCE, waiting.length) }, lane));
-  }
-
-  async function watchSafely(user: User): Promise<void> {
-    try {
-      await watch(user);
-    } catch (error) {
-      console.warn(`${userLabel(user)} watch failed: ${(error as Error).message}`);
+    for (const user of users.all()) {
+      try {
+        await watch(user);
+      } catch (error) {
+        console.warn(`${userLabel(user)} watch failed: ${(error as Error).message}`);
+      }
     }
   }
 
@@ -67,13 +59,8 @@ export function createWatcher({
   }
 
   async function send(user: User, pushes: Push[]): Promise<void> {
-    const answered = await Promise.all(
-      pushes.map(async (push) => ({
-        push,
-        result: await pushClient.send(push.token, push.event, push.props),
-      })),
-    );
-    for (const { push, result } of answered) {
+    for (const push of pushes) {
+      const result = await pushClient.send(push.token, push.event, push.props);
       user.activity = afterPush(user.activity, push, result);
       if (push.event === 'start' && result === 'token-invalid') user.startToken = undefined;
       if (push.event === 'start' && result === 'delivered') {
@@ -98,8 +85,7 @@ export function createWatcher({
 
   function schedule(): void {
     timer = setTimeout(async () => {
-      currentTick = tick();
-      await currentTick;
+      await tick();
       if (running) schedule();
     }, TICK_INTERVAL_MS);
   }
@@ -112,7 +98,6 @@ export function createWatcher({
     stop() {
       running = false;
       clearTimeout(timer);
-      return currentTick;
     },
     tick,
     reportCardTokens,

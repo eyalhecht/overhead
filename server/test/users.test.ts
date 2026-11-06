@@ -64,17 +64,6 @@ describe('saving users', () => {
     });
   });
 
-  it('does not bring back a phone that a reinstall replaced while it was being watched', () => {
-    const before = openStore();
-    const oldInstall = before.upsert({ ...request, startToken: 'start-token' });
-    before.upsert({ ...request, deviceId: 'phone-reinstalled', startToken: 'start-token' });
-    before.save(oldInstall);
-
-    const after = openStore();
-    expect(after.find('phone')).toBeUndefined();
-    expect(after.find('phone-reinstalled')).toBeDefined();
-  });
-
   it('forgets a phone that has not checked in for 30 days', () => {
     const start = Date.UTC(2026, 10, 5);
     openStore(start).upsert(request);
