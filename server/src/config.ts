@@ -20,6 +20,7 @@ const EnvSchema = z.object({
   DATABASE_PATH: optionalString,
   DEMO_LAT: optionalNumber.pipe(z.number().min(-90).max(90).optional()),
   DEMO_LON: optionalNumber.pipe(z.number().min(-180).max(180).optional()),
+  DEMO_DEVICE: optionalString,
 });
 
 export interface ApnsConfig {
@@ -37,6 +38,7 @@ export interface Config {
   databasePath?: string;
   apns?: ApnsConfig;
   demoLocation?: GeoPoint;
+  demoDevice?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -49,9 +51,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     databasePath: parsed.DATABASE_PATH,
     apns,
     demoLocation:
-      !apns && parsed.DEMO_LAT !== undefined && parsed.DEMO_LON !== undefined
+      (!apns || parsed.DEMO_DEVICE) && parsed.DEMO_LAT !== undefined && parsed.DEMO_LON !== undefined
         ? { lat: parsed.DEMO_LAT, lon: parsed.DEMO_LON }
         : undefined,
+    demoDevice: parsed.DEMO_DEVICE,
   };
 }
 

@@ -13,6 +13,7 @@ export interface WatcherDependencies {
   push: PushClient;
   now?: () => number;
   demoLocation?: GeoPoint;
+  demoDevice?: string;
 }
 
 export interface Watcher {
@@ -29,6 +30,7 @@ export function createWatcher({
   push: pushClient,
   now = Date.now,
   demoLocation,
+  demoDevice,
 }: WatcherDependencies): Watcher {
   let timer: NodeJS.Timeout | undefined;
   let running = false;
@@ -52,7 +54,9 @@ export function createWatcher({
   }
 
   async function watch(user: User): Promise<void> {
-    const planes = isQuietTime(user, now()) ? [] : await planesAbove(user, demoLocation ?? user.location);
+    const moved = demoLocation && (!demoDevice || user.deviceId.startsWith(demoDevice));
+    const spot = moved ? demoLocation : user.location;
+    const planes = isQuietTime(user, now()) ? [] : await planesAbove(user, spot);
     planesSeen.set(user, planes);
     const { action, state } = nextStep(user.activity, {
       planes,
