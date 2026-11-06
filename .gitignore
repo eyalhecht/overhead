@@ -7,3 +7,6 @@ android/
 *.tsbuildinfo
 *.db
 *.db-journal
+
+# EASA aircraft noise data has no license to redistribute; the server downloads it at deploy
+server/data/anp/
