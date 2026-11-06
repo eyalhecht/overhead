@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import type { GeoPoint } from '@overhead/shared';
 import { z } from 'zod';
 
 const optionalString = z.preprocess((value) => (value === '' ? undefined : value), z.string().optional());
@@ -35,7 +36,7 @@ export interface Config {
   fr24Token?: string;
   databasePath?: string;
   apns?: ApnsConfig;
-  demoLocation?: { lat: number; lon: number };
+  demoLocation?: GeoPoint;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {

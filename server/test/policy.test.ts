@@ -1,9 +1,10 @@
-import { CARD_MAX_AGE_MS, type NearbyPlane, type PassStage } from '@overhead/shared';
+import { CARD_MAX_AGE_MS, QUIET_HOURS, type NearbyPlane, type PassStage } from '@overhead/shared';
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_RULES,
   afterPush,
   initialActivityState,
+  isQuietTime,
   nextStep,
   pushesFor,
   receiveCardTokens,
@@ -298,5 +299,25 @@ describe('card tokens', () => {
     );
     expect(sim.state.showing).toBeUndefined();
     expect(sim.state.recentStarts).toEqual([]);
+  });
+});
+
+const utc = (hour: number, minute = 0) => Date.UTC(2026, 9, 29, hour, minute);
+
+describe('isQuietTime', () => {
+  it('wraps past midnight in the phone time zone', () => {
+    const berlin = { quietHours: QUIET_HOURS, utcOffsetMinutes: 60 };
+    expect(isQuietTime(berlin, utc(21, 30))).toBe(true);
+    expect(isQuietTime(berlin, utc(5, 59))).toBe(true);
+    expect(isQuietTime(berlin, utc(6, 0))).toBe(false);
+    expect(isQuietTime(berlin, utc(12))).toBe(false);
+  });
+
+  it('respects other time zones', () => {
+    expect(isQuietTime({ quietHours: QUIET_HOURS, utcOffsetMinutes: 120 }, utc(19, 30))).toBe(false);
+  });
+
+  it('is never quiet when quiet hours are off', () => {
+    expect(isQuietTime({ quietHours: null, utcOffsetMinutes: 60 }, utc(23))).toBe(false);
   });
 });

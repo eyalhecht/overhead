@@ -3,7 +3,6 @@ import Database from 'better-sqlite3';
 import { closeSync, openSync } from 'node:fs';
 import { initialActivityState, type ActivityState } from './activity/policy.js';
 
-const MINUTES_PER_DAY = 24 * 60;
 const FORGET_AFTER_MS = 30 * 24 * 60 * 60_000;
 const OWNER_ONLY = 0o600;
 
@@ -141,15 +140,4 @@ export function sqliteStorage(path: string): UserStorage {
 }
 export function userLabel({ deviceId }: Pick<User, 'deviceId'>): string {
   return `[${deviceId.slice(0, 8)}]`;
-}
-
-export function isQuietTime(user: Pick<User, 'quietHours' | 'utcOffsetMinutes'>, now: number): boolean {
-  if (!user.quietHours) return false;
-  const [from, to] = user.quietHours;
-  const localMinute = mod(Math.floor(now / 60_000) + user.utcOffsetMinutes, MINUTES_PER_DAY);
-  return from <= to ? localMinute >= from && localMinute < to : localMinute >= from || localMinute < to;
-}
-
-function mod(value: number, divisor: number): number {
-  return ((value % divisor) + divisor) % divisor;
 }

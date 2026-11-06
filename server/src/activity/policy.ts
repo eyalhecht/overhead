@@ -1,5 +1,7 @@
-import { isOnCard, type ActivityProps, type NearbyPlane } from '@overhead/shared';
-import type { LiveActivityEvent, PushResult } from '../push/apns.js';
+import { isOnCard, type ActivityProps, type NearbyPlane, type RegisterRequest } from '@overhead/shared';
+
+export type LiveActivityEvent = 'start' | 'update' | 'end';
+export type PushResult = 'delivered' | 'token-invalid' | 'failed';
 
 export const ACTIVITY_RULES = {
   keepAliveMs: 30_000,
@@ -247,4 +249,18 @@ function cardProps(plane: NearbyPlane & { stage: 'approaching' | 'overhead' }): 
     route: plane.route,
     stage: plane.stage,
   };
+}
+
+export function isQuietTime(
+  user: Pick<RegisterRequest, 'quietHours' | 'utcOffsetMinutes'>,
+  now: number,
+): boolean {
+  if (!user.quietHours) return false;
+  const [from, to] = user.quietHours;
+  const localMinute = mod(Math.floor(now / 60_000) + user.utcOffsetMinutes, 24 * 60);
+  return from <= to ? localMinute >= from && localMinute < to : localMinute >= from || localMinute < to;
+}
+
+function mod(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor;
 }

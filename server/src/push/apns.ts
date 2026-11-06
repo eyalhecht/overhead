@@ -1,10 +1,8 @@
 import crypto from 'node:crypto';
 import http2 from 'node:http2';
 import { cardText, liveActivityContent, type ActivityProps } from '@overhead/shared';
+import type { LiveActivityEvent, PushResult } from '../activity/policy.js';
 import type { ApnsConfig } from '../config.js';
-
-export type LiveActivityEvent = 'start' | 'update' | 'end';
-export type PushResult = 'delivered' | 'token-invalid' | 'failed';
 
 export interface PushClient {
   send(token: string, event: LiveActivityEvent, props: ActivityProps): Promise<PushResult>;

@@ -1,7 +1,7 @@
-import type { Push } from '../src/activity/policy.js';
+import type { LiveActivityEvent, Push, PushResult } from '../src/activity/policy.js';
 import type { ActivityProps, GeoPoint, NearbyPlane, RegisterRequest } from '@overhead/shared';
 import type { Sky } from '../src/flights/sky.js';
-import type { LiveActivityEvent, PushClient, PushResult } from '../src/push/apns.js';
+import type { PushClient } from '../src/push/apns.js';
 
 export const nearbyPlane = (flight: string, overrides: Partial<NearbyPlane> = {}): NearbyPlane => ({
   id: flight.toLowerCase(),

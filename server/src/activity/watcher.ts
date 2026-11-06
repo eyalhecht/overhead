@@ -1,8 +1,8 @@
 import type { GeoPoint, NearbyPlane } from '@overhead/shared';
 import type { Sky } from '../flights/sky.js';
 import type { PushClient } from '../push/apns.js';
-import { isQuietTime, userLabel, type User, type UserStore } from '../users.js';
-import { afterPush, nextStep, pushesFor, receiveCardTokens, type Push } from './policy.js';
+import { userLabel, type User, type UserStore } from '../users.js';
+import { afterPush, isQuietTime, nextStep, pushesFor, receiveCardTokens, type Push } from './policy.js';
 
 const TICK_INTERVAL_MS = 5000;
 
