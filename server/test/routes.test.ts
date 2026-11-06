@@ -26,6 +26,16 @@ describe('route source', () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
+  it('asks once when several phones look up the same flight at the same time', async () => {
+    fetchFn.mockResolvedValue(fr24Response({ data: [{ orig_iata: 'AUH', dest_iata: 'TLV' }] }));
+    const routes = source();
+
+    const [first, second] = await Promise.all([routes.routeFor('ETD597'), routes.routeFor('ETD597')]);
+
+    expect(first).toEqual(second);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   it('does not retry a failed lookup on every tick', async () => {
     fetchFn.mockResolvedValue(fr24Response({ message: 'Bad request' }, 400));
     const routes = source();
