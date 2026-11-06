@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { roughLocation } from './rules.js';
 
 export interface GeoPoint {
   lat: number;
@@ -40,18 +41,20 @@ export interface ActivityProps {
 const latitude = z.number().min(-90).max(90);
 const longitude = z.number().min(-180).max(180);
 const minuteOfDay = z.number().int().min(0).max(1439);
-const pushToken = z.string().regex(/^[\w+/=-]{1,300}$/);
+const pushToken = z.string().regex(/^[\w+=-]{1,300}$/);
 const deviceId = z.string().min(1).max(64);
 
-export const RegisterRequestSchema = z.object({
-  deviceId,
-  lat: latitude,
-  lon: longitude,
-  startToken: pushToken.optional(),
-  activityTokens: z.array(pushToken).max(10),
-  quietHours: z.tuple([minuteOfDay, minuteOfDay]).nullable(),
-  utcOffsetMinutes: z.number().int().min(-840).max(840),
-});
+export const RegisterRequestSchema = z
+  .object({
+    deviceId,
+    lat: latitude,
+    lon: longitude,
+    startToken: pushToken.nullable().optional(),
+    activityTokens: z.array(pushToken).max(10),
+    quietHours: z.tuple([minuteOfDay, minuteOfDay]).nullable(),
+    utcOffsetMinutes: z.number().int().min(-840).max(840),
+  })
+  .transform((request) => ({ ...request, ...roughLocation(request) }));
 
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 

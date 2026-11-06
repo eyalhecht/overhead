@@ -16,8 +16,6 @@ When a plane is predicted to pass within about 2.8 km of you, below 10,000 ft, a
   <img src="docs/images/dynamic-island.png" width="400" alt="Dynamic Island, compact (plane icon, FRA, BER) and expanded (route, status, airline and aircraft)">
 </p>
 
-<sub>Mockups drawn from the app's layout code. Screenshots from a phone will replace them.</sub>
-
 ## Engineering highlights
 
 - **A pure state machine decides every card.** [`policy.ts`](server/src/activity/policy.ts) turns planes, time and push results into start, update and end, including the card-token lifecycle. The [watcher](server/src/activity/watcher.ts) is a thin 5-second loop around it.

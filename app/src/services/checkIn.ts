@@ -39,7 +39,7 @@ async function report(location?: GeoPoint): Promise<void> {
   await register({
     deviceId,
     ...target,
-    startToken: settings.liveActivities ? startToken : undefined,
+    startToken: settings.liveActivities ? startToken : null,
     activityTokens: cardTokens,
     quietHours: settings.quietHours ? QUIET_HOURS : null,
     utcOffsetMinutes: -new Date().getTimezoneOffset(),
