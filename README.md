@@ -21,7 +21,7 @@ When a plane is predicted to pass within about 2.8 km of you, below 10,000 ft, a
 - **A pure state machine decides every card.** [`policy.ts`](server/src/activity/policy.ts) turns planes, time and push results into start, update and end, including the card-token lifecycle. The [watcher](server/src/activity/watcher.ts) is a thin 5-second loop around it.
 - **Tests replay real situations on a fake clock**: a plane every 2 minutes for three hours, a server restart mid-pass, feed outages, a circling helicopter ([`real-world.test.ts`](server/test/real-world.test.ts)). Apple Push is tested against a local HTTP/2 server ([`apns.test.ts`](server/test/apns.test.ts)), and flight parsing against captured feed data ([fixtures](server/test/fixtures)).
 - **It works within Apple's unpublished Live Activity push budget.** Routine updates go at priority 5, starts and ends at 10, one card switches between planes, and starts are capped and back off when iOS silently drops one. The reasoning is in [docs/research/live-activities-busy-sky.md](docs/research/live-activities-busy-sky.md).
-- **Privacy is enforced in code, not just promised.** Locations are rounded to about 100 m on the phone ([`rules.ts`](shared/src/rules.ts), [`api.ts`](app/src/services/api.ts)), and tests prove logs and third parties never see a location, a device ID or a token ([`privacy-and-security.test.ts`](server/test/privacy-and-security.test.ts)). Details in [PRIVACY.md](PRIVACY.md).
+- **Privacy is enforced in code, not just promised.** Locations are rounded to about 100 m on the phone ([`rules.ts`](shared/src/rules.ts), [`api.ts`](app/src/services/api.ts)), the server rounds again, and tests prove logs never contain a location, a device ID or a token, and that the flight feeds only ever see a 10 km area, never who is asking ([`privacy-and-security.test.ts`](server/test/privacy-and-security.test.ts)). Details in [PRIVACY.md](PRIVACY.md).
 - **Storage behind a seam.** The [user store](server/src/users.ts) keeps one interface, with SQLite in production and memory in tests, and forgets phones silent for 30 days.
 
 The domain vocabulary is in [CONTEXT.md](CONTEXT.md).
@@ -94,9 +94,10 @@ The server runs on a Google Cloud e2-micro VM as a systemd service, behind Caddy
 
 Known and accepted for a beta of a few users:
 
-- The watcher checks each phone in turn, with one flight-feed call per phone every 5 seconds. That is fine for tens of users; hundreds need batching by area.
-- The server accepts at most 100 phones.
-- The app key ships inside the app, so it only keeps out casual callers. There is no rate limiting yet; Apple App Attest is the planned fix.
+- The watcher checks up to 8 phones at once. Phones in the same 10 km area share one flight-feed call per tick, and each feed gets at most one call a second, so the number of areas, not users, sets the limit: about 5 areas per 5-second tick.
+- The server accepts at most 100 phones and forgets a phone after 30 days of silence.
+- The app key ships inside the app, so it only keeps out casual callers, and the device ID is the only proof of which phone is calling. Someone who extracts the key could fill the 100 places, and someone who knows another phone's device ID could read its sky. The planned fix is a per-install secret issued by the server (or Apple App Attest) plus rate limiting.
+- The server runs its TypeScript directly with `tsx`; a compiled build is the next step.
 - Apple publishes no push-to-start budget. The cap of 10 new cards an hour is a measured guess.
 - adsb.fi data is free for non-commercial use, which this is today.
 
