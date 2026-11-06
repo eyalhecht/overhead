@@ -193,9 +193,29 @@ describe('nextStep', () => {
     const sim = new Simulation();
     sim.step([plane('HELI1')]);
     sim.confirmCard();
-    expect(sim.step([plane('HELI1')], ACTIVITY_RULES.circlingLimitMs + SECOND)).toBe('end');
+    for (let minute = 0; minute < 10; minute += 1) sim.step([plane('HELI1')], MINUTE);
+    expect(sim.step([plane('HELI1')], SECOND)).toBe('end');
     expect(sim.step([plane('HELI1')])).toBe('none');
     expect(sim.step([plane('BAW2')])).toBe('start');
+  });
+
+  it('keeps timing a circling aircraft through short gaps in the feed', () => {
+    const sim = new Simulation();
+    sim.step([plane('HELI1')]);
+    sim.confirmCard();
+    for (let minute = 0; minute < 10; minute += 1) {
+      sim.step([plane('HELI1')], 30 * SECOND);
+      sim.step([], 30 * SECOND);
+    }
+    expect(sim.step([plane('HELI1')], SECOND)).toBe('end');
+  });
+
+  it('treats an aircraft as new once it has been gone for a while', () => {
+    const sim = new Simulation();
+    sim.step([plane('BAW1')]);
+    sim.confirmCard();
+    sim.step([], ACTIVITY_RULES.forgetGoneAfterMs + SECOND);
+    expect(sim.state.firstSeenAt).toEqual({});
   });
 
   it('renews a long-running card so it never outlives the app fallback', () => {

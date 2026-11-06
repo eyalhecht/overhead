@@ -7,6 +7,7 @@ export const ACTIVITY_RULES = {
   keepAliveMs: 30_000,
   passedLingerMs: 20_000,
   circlingLimitMs: 10 * 60_000,
+  forgetGoneAfterMs: 2 * 60_000,
   renewAfterMs: 20 * 60_000,
   maxStartsPerHour: 10,
   tokenWaitMs: 60_000,
@@ -28,6 +29,7 @@ export interface ActivityState {
   showing?: ShowingCard;
   lastProps?: ActivityProps;
   firstSeenAt: Record<string, number>;
+  lastSeenAt: Record<string, number>;
   goneSince?: number;
   recentStarts: number[];
   pausedUntil?: number;
@@ -62,6 +64,7 @@ export interface StepResult {
 export const initialActivityState = (): ActivityState => ({
   recentStarts: [],
   firstSeenAt: {},
+  lastSeenAt: {},
   cardTokens: [],
   endedTokens: [],
 });
@@ -76,9 +79,9 @@ export function nextStep(state: ActivityState, { planes, now, canStart }: StepIn
     };
   }
 
-  const firstSeenAt = trackFirstSeen(state.firstSeenAt, planes, now);
-  const passing = planes.filter((plane) => !isCircling(firstSeenAt, plane, now));
-  const next: ActivityState = { ...state, firstSeenAt };
+  const sightings = trackSightings(state, planes, now);
+  const passing = planes.filter((plane) => !isCircling(sightings.firstSeenAt, plane, now));
+  const next: ActivityState = { ...state, ...sightings };
   const [main] = passing.filter(isOnCard);
   const nextPlaneOnItsWay = passing.some((plane) => plane.stage === 'inbound');
 
@@ -225,16 +228,27 @@ function startsWithinHour(starts: number[], now: number): number[] {
   return starts.filter((startedAt) => now - startedAt < HOUR_MS);
 }
 
-function trackFirstSeen(
-  previous: Record<string, number>,
+function trackSightings(
+  { firstSeenAt, lastSeenAt }: Pick<ActivityState, 'firstSeenAt' | 'lastSeenAt'>,
   planes: NearbyPlane[],
   now: number,
-): Record<string, number> {
-  return Object.fromEntries(planes.map(({ flight }) => [flight, previous[flight] ?? now]));
+): Pick<ActivityState, 'firstSeenAt' | 'lastSeenAt'> {
+  const recentIds = Object.keys(lastSeenAt).filter(
+    (id) => now - (lastSeenAt[id] ?? 0) <= ACTIVITY_RULES.forgetGoneAfterMs,
+  );
+  const next = {
+    firstSeenAt: Object.fromEntries(recentIds.map((id) => [id, firstSeenAt[id] ?? now])),
+    lastSeenAt: Object.fromEntries(recentIds.map((id) => [id, lastSeenAt[id] ?? now])),
+  };
+  for (const { id } of planes) {
+    next.firstSeenAt[id] ??= now;
+    next.lastSeenAt[id] = now;
+  }
+  return next;
 }
 
 function isCircling(firstSeenAt: Record<string, number>, plane: NearbyPlane, now: number): boolean {
-  return now - (firstSeenAt[plane.flight] ?? now) > ACTIVITY_RULES.circlingLimitMs;
+  return now - (firstSeenAt[plane.id] ?? now) > ACTIVITY_RULES.circlingLimitMs;
 }
 
 function sameCard(a: ActivityProps, b: ActivityProps): boolean {
