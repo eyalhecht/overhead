@@ -77,8 +77,7 @@ export function createUserStore({
 
       const profile = {
         location: { lat: request.lat, lon: request.lon },
-        startToken:
-          request.startToken === undefined ? existing?.startToken : (request.startToken ?? undefined),
+        startToken: request.startToken,
         quietHours: request.quietHours,
         utcOffsetMinutes: request.utcOffsetMinutes,
         lastSeenAt: now(),
