@@ -130,6 +130,17 @@ describe('nextStep', () => {
     expect(sim.lastAction).toMatchObject({ props: { flight: 'DLH2', stage: 'approaching' } });
   });
 
+  it('moves a card showing a heard plane to a plane passing close, without a new start', () => {
+    const sim = new Simulation();
+    const heard = nearbyPlane('HRD1', { heardDb: 50, distanceNm: 2 });
+    expect(sim.step([heard])).toBe('start');
+    sim.confirmCard();
+
+    expect(sim.step([nearbyPlane('CLOSE1', { distanceNm: 0.4 }), heard])).toBe('update');
+    expect(sim.lastAction).toMatchObject({ props: { flight: 'CLOSE1' } });
+    expect(sim.state.recentStarts).toHaveLength(1);
+  });
+
   it('puts the plane above you on the card before one still approaching', () => {
     const { action } = nextStep(initialActivityState(), {
       planes: [plane('BAW1', 'overhead'), plane('DLH2', 'approaching')],

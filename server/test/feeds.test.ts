@@ -201,6 +201,21 @@ describe('the sky above a user', () => {
     expect(plane).toMatchObject({ airline: 'Israir', aircraft: 'A320', route: { to: 'TLV' } });
   });
 
+  it('judges planes passing close exactly as without the hearing rule', async () => {
+    const feed = fixedFeed([
+      aircraft('ELY001', { distanceNm: 0.4 }),
+      aircraft('INBOUND1', { distanceNm: 2.4, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 240 }),
+      aircraft('CRUISE1', { altitudeFt: 37000, distanceNm: 0.2 }),
+    ]);
+    const everythingLoud = { peakDb: () => 90 };
+
+    const without = await createSky(feed, noRoutes).planesAbove(BEN_GURION);
+    const withHearing = await createSky(feed, noRoutes, everythingLoud).planesAbove(BEN_GURION);
+
+    expect(without.length).toBeGreaterThan(0);
+    for (const plane of without) expect(withHearing).toContainEqual(plane);
+  });
+
   it('adds planes passing too far for the close rule when they are loud enough to hear', async () => {
     const farPast = { distanceNm: 2.4, bearingDeg: 0, trackDeg: 270 };
     const noise = { peakDb: (plane: Aircraft) => (plane.flight === 'LOUD1' ? 52 : 40) };
