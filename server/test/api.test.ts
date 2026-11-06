@@ -102,7 +102,7 @@ describe('API', () => {
       .expect(204);
 
     await authorized(request(fullApp).post('/register'))
-      .send(registerRequest({ deviceId: 'second' }))
+      .send(registerRequest({ deviceId: 'second', startToken: 'second-start-token' }))
       .expect(503);
   });
 

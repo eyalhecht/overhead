@@ -60,8 +60,19 @@ export function createUserStore({
   }
   forgetSilentPhones();
 
+  // A reinstalled app gets a new device ID but keeps its push token, so the token marks the phone.
+  function forgetOtherInstalls({ deviceId, startToken }: RegisterRequest): void {
+    if (!startToken) return;
+    for (const user of users.values()) {
+      if (user.deviceId === deviceId || user.startToken !== startToken) continue;
+      users.delete(user.deviceId);
+      storage.remove(user.deviceId);
+    }
+  }
+
   return {
     upsert(request) {
+      forgetOtherInstalls(request);
       const existing = users.get(request.deviceId);
       if (!existing && users.size >= maxUsers) throw new UserLimitError(maxUsers);
 
