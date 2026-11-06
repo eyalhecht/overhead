@@ -12,3 +12,5 @@ npm start -w app                      # Metro for the development build
 The app reads `EXPO_PUBLIC_SERVER_URL` and `EXPO_PUBLIC_APP_KEY` from `app/.env`.
 
 With `DEMO_LAT`/`DEMO_LON` set and no APNs config, the server runs a dry run at that spot and prints every card it would send.
+
+Without EASA's noise data only planes passing close get cards. To hear planes locally, download the legacy ANP 2.3 tables from https://www.easa.europa.eu/en/downloads/138164/en and unzip them into `server/data/anp/`. They have no license to redistribute, so git ignores that folder and CI fails if they are committed.

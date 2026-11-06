@@ -22,6 +22,12 @@ gcloud compute ssh "$VM" --project "$PROJECT" --zone "$ZONE" --quiet --command "
   sudo mkdir -p /opt/overhead/app.next
   sudo tar -xzf /tmp/overhead.tar.gz -C /opt/overhead/app.next
   sudo cp /opt/overhead/secrets/.env /opt/overhead/app.next/server/.env
+  if [ ! -f /opt/overhead/anp/ANP2.3_NPD_data.csv ]; then
+    curl -fsSL -o /tmp/anp.zip https://www.easa.europa.eu/en/downloads/138164/en
+    sudo python3 -m zipfile -e /tmp/anp.zip /opt/overhead/anp
+  fi
+  sudo mkdir -p /opt/overhead/app.next/server/data
+  sudo cp -r /opt/overhead/anp /opt/overhead/app.next/server/data/anp
   sudo chown -R overhead:overhead /opt/overhead/app.next
   cd /opt/overhead/app.next && sudo -u overhead npm ci --workspace server --workspace shared --no-audit --no-fund --loglevel=error
   sudo rm -rf /opt/overhead/app.previous

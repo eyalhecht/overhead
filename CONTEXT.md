@@ -8,6 +8,7 @@ The words the code, tests and docs use for the domain. Keep new code to these na
   - **approaching:** about 45 seconds away.
   - **overhead:** passing now. Shown as "Above you now".
   - **passed:** gone, but the card lingers for about 20 seconds.
+- **Heard:** a plane outside the close-pass rule whose predicted peak loudness at your spot beats a city street (48 dBA). Carries `heardDb`.
 - **Card text:** the status, title and details a card shows, built once by `cardText` in shared/.
 - **Start token:** the push token a phone gives so the server can start a card.
 - **Card token:** the push token iOS gives one open card, so the server can update or end it.

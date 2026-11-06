@@ -79,7 +79,9 @@ export function createWatcher({
         user.startToken = undefined;
       }
       if (push.event === 'start' && result === 'delivered') {
-        console.log(`${userLabel(user)} card started: ${push.props.flight} ${push.props.stage}`);
+        const heardDb = planesSeen.get(user)?.find((plane) => plane.flight === push.props.flight)?.heardDb;
+        const reason = heardDb === undefined ? 'passing close' : `heard at about ${heardDb} dB`;
+        console.log(`${userLabel(user)} card started: ${push.props.flight} ${push.props.stage}, ${reason}`);
       }
     }
   }

@@ -105,7 +105,12 @@ Waiting for a public launch, because they don't matter for this goal: running co
 
 ## Which planes get a card
 
-A plane gets a card when it is predicted to pass within about **2.8 km** of you, below **10,000 ft**.
+A plane gets a card when either is true:
+
+- **It passes close:** predicted to pass within about **2.8 km** of you, below **10,000 ft**.
+- **You can hear it:** its predicted peak loudness at your spot is at least **48 dBA**, a typical city street by day. The estimate uses the official noise tables for its aircraft type at the engine power it is using now (climbing at takeoff power is about 10 dB louder than gliding in to land), its true distance including height, and the extra fading for planes low on the horizon. Details and sources: [docs/research/hearing-planes.md](docs/research/hearing-planes.md).
+  - Aircraft types without noise data only get a card by passing close.
+  - Planes that are only heard never take the last 3 of the hour's 10 new cards, so a plane passing right over you still gets one.
 
 - We predict its closest point to you from its position, heading and speed.
 - Planes on the ground are ignored.

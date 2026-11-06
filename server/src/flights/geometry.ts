@@ -5,6 +5,8 @@ const OVERHEAD_MAX_ALTITUDE_FT = 10_000;
 const APPROACH_LEAD_SECONDS = 45;
 const INBOUND_LEAD_SECONDS = 120;
 const HOVER_SPEED_KT = 40;
+const LOUDEST_WITHIN_SECONDS = 10;
+export const BACKGROUND_DB = 48;
 const SECONDS_PER_HOUR = 3600;
 const EARTH_RADIUS_NM = 3440.065;
 
@@ -13,6 +15,7 @@ export interface Aircraft {
   flight: string;
   typeCode?: string;
   altitudeFt: number;
+  verticalRateFpm?: number;
   groundSpeedKt: number;
   trackDeg: number;
   distanceNm: number;
@@ -30,6 +33,14 @@ export function passStage(aircraft: Aircraft): PassStage | null {
 
   const { distanceNm, inSeconds } = closestApproach(aircraft);
   if (distanceNm > OVERHEAD_RADIUS_NM) return null;
+  if (inSeconds <= APPROACH_LEAD_SECONDS) return 'approaching';
+  return inSeconds <= INBOUND_LEAD_SECONDS ? 'inbound' : null;
+}
+
+export function heardStage(aircraft: Aircraft, peakDb: number | undefined): PassStage | null {
+  if (peakDb === undefined || peakDb < BACKGROUND_DB || aircraft.groundSpeedKt < HOVER_SPEED_KT) return null;
+  const { inSeconds } = closestApproach(aircraft);
+  if (inSeconds <= LOUDEST_WITHIN_SECONDS) return 'overhead';
   if (inSeconds <= APPROACH_LEAD_SECONDS) return 'approaching';
   return inSeconds <= INBOUND_LEAD_SECONDS ? 'inbound' : null;
 }

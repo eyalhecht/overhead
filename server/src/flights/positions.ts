@@ -42,6 +42,7 @@ const ReadsbAircraftSchema = z.object({
   flight: z.string().trim().min(1),
   t: z.string().optional(),
   alt_baro: z.number(),
+  baro_rate: z.number().optional(),
   gs: z.number().default(0),
   track: z.number().default(0),
   lat: z.number(),
@@ -116,7 +117,7 @@ export function parseReadsbResponse(body: unknown): LocatedAircraft[] {
   return ReadsbResponseSchema.parse(body).ac.flatMap((entry) => {
     const parsed = ReadsbAircraftSchema.safeParse(entry);
     if (!parsed.success) return [];
-    const { hex, flight, t, alt_baro, gs, track, lat, lon, dst, dir } = parsed.data;
+    const { hex, flight, t, alt_baro, baro_rate, gs, track, lat, lon, dst, dir } = parsed.data;
     return [
       {
         id: hex,
@@ -125,6 +126,7 @@ export function parseReadsbResponse(body: unknown): LocatedAircraft[] {
         flight,
         typeCode: t,
         altitudeFt: alt_baro,
+        verticalRateFpm: baro_rate,
         groundSpeedKt: gs,
         trackDeg: track,
         distanceNm: dst,
