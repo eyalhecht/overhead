@@ -64,6 +64,36 @@ describe('watcher', () => {
     expect(push.sent.at(-1)).toMatchObject({ event: 'end', token: 'late-card', props: { flight: 'BAW1' } });
   });
 
+  it('keeps watching other phones while one phone waits on a slow feed', async () => {
+    users.upsert(registerRequest({ deviceId: 'phone-2', startToken: 'start-token-2', lat: 10 }));
+    let releaseSlowFeed = () => {};
+    sky.planesAt = ({ lat }) => (lat === 10 ? [nearbyPlane('BAW1')] : []);
+    const planesAbove = sky.planesAbove.bind(sky);
+    sky.planesAbove = (point) =>
+      point.lat === 10 ? planesAbove(point) : new Promise((resolve) => (releaseSlowFeed = () => resolve([])));
+
+    const tick = watcher.tick();
+    await vi.waitFor(() => expect(push.sent.map(({ token }) => token)).toEqual(['start-token-2']));
+    releaseSlowFeed();
+    await tick;
+  });
+
+  it('finishes the tick in progress before stopping', async () => {
+    let releaseFeed = () => {};
+    sky.planesAbove = () => new Promise((resolve) => (releaseFeed = () => resolve([nearbyPlane('BAW1')])));
+    vi.useFakeTimers();
+    watcher.start();
+    await vi.advanceTimersByTimeAsync(5000);
+    let stopped = false;
+    const stopping = watcher.stop().then(() => (stopped = true));
+    await Promise.resolve();
+    expect(stopped).toBe(false);
+    releaseFeed();
+    await stopping;
+    vi.useRealTimers();
+    expect(push.sent.map(({ event }) => event)).toEqual(['start']);
+  });
+
   it('stays silent during quiet hours', async () => {
     user = users.upsert(registerRequest({ quietHours: [0, 1439] }));
     sky.planes = [nearbyPlane('BAW1')];
@@ -87,7 +117,16 @@ describe('watcher', () => {
       'update:card-1',
     ]);
     expect(user.activity.pausedUntil).toBeUndefined();
-    expect(user.activity.recentStarts).toHaveLength(1);
+    expect(user.activity.recentStarts).toHaveLength(2);
+  });
+
+  it('sends no more than the hourly limit of starts while Apple keeps rejecting them', async () => {
+    push.result = 'failed';
+    sky.planes = [nearbyPlane('ETD9702')];
+    for (let tick = 0; tick < 60; tick += 1) await tickAfter(5000);
+
+    const starts = push.sent.filter(({ event }) => event === 'start');
+    expect(starts).toHaveLength(ACTIVITY_RULES.maxStartsPerHour);
   });
 
   it('forgets a start token that Apple reports as invalid', async () => {

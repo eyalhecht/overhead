@@ -84,7 +84,7 @@ describe('API', () => {
     await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
 
     await authorized(request(app).post('/register'))
-      .send(registerRequest({ startToken: undefined }))
+      .send(registerRequest({ startToken: null }))
       .expect(204);
 
     expect(users.all()[0]?.startToken).toBeUndefined();
@@ -121,6 +121,9 @@ describe('API', () => {
   it('rejects a token that could smuggle a path into the request to Apple', async () => {
     await authorized(request(app).post('/register'))
       .send(registerRequest({ startToken: '../../3/device/other' }))
+      .expect(400);
+    await authorized(request(app).post('/register'))
+      .send(registerRequest({ startToken: '3/device/other' }))
       .expect(400);
   });
 

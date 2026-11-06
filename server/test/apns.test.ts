@@ -109,7 +109,7 @@ describe('APNs client', () => {
 
   it('gives up on a push Apple never answers, so one stuck push cannot stall every phone', async () => {
     apple.reply = { status: 200, silent: true };
-    expect(await apns.send('card-token', 'update', card)).toBe('failed');
+    expect(await apns.send('card-token', 'update', card)).toBe('no-answer');
   });
 
   it('delivers a start push with the headers Apple requires for Live Activities', async () => {

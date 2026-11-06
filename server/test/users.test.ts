@@ -23,6 +23,15 @@ describe('createUserStore', () => {
     expect(users.all().map((user) => user.deviceId)).toEqual(['new-install']);
   });
 
+  it('keeps the start token when the phone has not learned it yet, and drops it when cards are turned off', () => {
+    const users = createUserStore();
+    users.upsert({ ...request('phone'), startToken: 'start-token' });
+    users.upsert(request('phone'));
+    expect(users.find('phone')?.startToken).toBe('start-token');
+    users.upsert({ ...request('phone'), startToken: null });
+    expect(users.find('phone')?.startToken).toBeUndefined();
+  });
+
   it('refuses new users beyond the limit', () => {
     const users = createUserStore({ maxUsers: 1 });
     users.upsert(request('first'));
@@ -62,6 +71,17 @@ describe('saving users', () => {
       location: { lat: 32.069, lon: 34.774 },
       activity: { cardTokens: ['card-1'], recentStarts: [123] },
     });
+  });
+
+  it('does not bring back a phone that a reinstall replaced while it was being watched', () => {
+    const before = openStore();
+    const oldInstall = before.upsert({ ...request, startToken: 'start-token' });
+    before.upsert({ ...request, deviceId: 'phone-reinstalled', startToken: 'start-token' });
+    before.save(oldInstall);
+
+    const after = openStore();
+    expect(after.find('phone')).toBeUndefined();
+    expect(after.find('phone-reinstalled')).toBeDefined();
   });
 
   it('forgets a phone that has not checked in for 30 days', () => {
