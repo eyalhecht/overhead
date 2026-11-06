@@ -128,14 +128,25 @@ export function sqliteStorage(path: string): UserStorage {
   const remove = db.prepare('DELETE FROM users WHERE device_id = ?');
   const selectAll = db.prepare<[], { data: string }>('SELECT data FROM users');
 
+  const written = new Map<string, string>();
+
   return {
     load: () =>
       selectAll.all().map(({ data }) => {
         const user = JSON.parse(data) as User;
+        written.set(user.deviceId, data);
         return { ...user, activity: { ...initialActivityState(), ...user.activity } };
       }),
-    write: (user) => upsert.run(user.deviceId, JSON.stringify(user)),
-    remove: (deviceId) => remove.run(deviceId),
+    write: (user) => {
+      const data = JSON.stringify(user);
+      if (written.get(user.deviceId) === data) return;
+      upsert.run(user.deviceId, data);
+      written.set(user.deviceId, data);
+    },
+    remove: (deviceId) => {
+      remove.run(deviceId);
+      written.delete(deviceId);
+    },
     close: () => db.close(),
   };
 }
