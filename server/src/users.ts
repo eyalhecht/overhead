@@ -104,7 +104,7 @@ export function createUserStore({
     },
 
     save(user) {
-      storage.write(user);
+      if (users.get(user.deviceId) === user) storage.write(user);
     },
 
     close() {
