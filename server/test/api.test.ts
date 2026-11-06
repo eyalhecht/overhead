@@ -122,6 +122,9 @@ describe('API', () => {
     await authorized(request(app).post('/register'))
       .send(registerRequest({ startToken: '../../3/device/other' }))
       .expect(400);
+    await authorized(request(app).post('/register'))
+      .send(registerRequest({ startToken: '3/device/other' }))
+      .expect(400);
   });
 
   describe('the sky a phone sees', () => {
