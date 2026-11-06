@@ -2,6 +2,10 @@
 
 Researched 2026-11-05 from Apple primary sources only (developer docs, HIG, App Review Guidelines, WWDC transcripts, Apple staff replies on the Developer Forums). Every claim has its URL next to it. "Inference" marks my own reasoning.
 
+## Decision (2026-11-05)
+
+Keep the 20 minute renewal for now. On real traffic it has not caused a missed card since the start cap went from 5 to 10 an hour. The beta's daily log check watches for paused starts ("card never confirmed"). If they appear, drop the renewal and let one card live for hours, as recommended below.
+
 ## Summary
 
 1. Apple documents no account ban or app block for frequent Live Activity pushes. What it does document is throttling on the device: once the budget is gone, updates stop or the card stops showing, and recovery "can take up to 24 hours".
