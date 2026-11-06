@@ -104,11 +104,9 @@ describe('a real flight: Israir ISR053 climbing over Ramat Gan', () => {
   });
 });
 
-const KM_IN_NM = 1 / 1.852;
-
 describe('angles and directions', () => {
   it('points 33° up for a plane at 2,600 ft, 1.2 km away', () => {
-    expect(elevationAngle(2600, 1.2 * KM_IN_NM)).toBe(33);
+    expect(elevationAngle(2600, 1.2 / KM_PER_NM)).toBe(33);
   });
 
   it('points straight up for a plane right above you', () => {
@@ -116,7 +114,7 @@ describe('angles and directions', () => {
   });
 
   it('points low for a plane far away near the horizon', () => {
-    expect(elevationAngle(1500, 2.5 * KM_IN_NM)).toBe(10);
+    expect(elevationAngle(1500, 2.5 / KM_PER_NM)).toBe(10);
   });
 
   it('turns the plane bearing into a direction relative to where the phone faces', () => {
