@@ -1,8 +1,4 @@
 const AIRCRAFT_NAMES: Record<string, string> = {
-  A318: 'A318',
-  A319: 'A319',
-  A320: 'A320',
-  A321: 'A321',
   A19N: 'A319neo',
   A20N: 'A320neo',
   A21N: 'A321neo',

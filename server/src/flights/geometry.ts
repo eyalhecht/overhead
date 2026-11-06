@@ -1,9 +1,9 @@
 import type { PassStage } from '@overhead/shared';
 
-export const OVERHEAD_RADIUS_NM = 1.5;
-export const OVERHEAD_MAX_ALTITUDE_FT = 10_000;
-export const APPROACH_LEAD_SECONDS = 45;
-export const INBOUND_LEAD_SECONDS = 120;
+const OVERHEAD_RADIUS_NM = 1.5;
+const OVERHEAD_MAX_ALTITUDE_FT = 10_000;
+const APPROACH_LEAD_SECONDS = 45;
+const INBOUND_LEAD_SECONDS = 120;
 const HOVER_SPEED_KT = 40;
 const SECONDS_PER_HOUR = 3600;
 
