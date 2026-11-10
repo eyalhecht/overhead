@@ -104,6 +104,89 @@ describe('nextStep', () => {
     expect(sim.step([], ACTIVITY_RULES.passedLingerMs - SECOND)).toBe('update');
   });
 
+  describe('waiting for the next plane', () => {
+    const passAndWait = (sim: Simulation, ...waits: number[]) => {
+      sim.step([]);
+      return waits.map((ms) => sim.step([], ms));
+    };
+
+    it('closes the card of a lone plane 20 seconds after it passes', () => {
+      const sim = new Simulation();
+      expect(sim.step([plane('BAW1')])).toBe('start');
+      sim.confirmCard();
+      expect(passAndWait(sim, ACTIVITY_RULES.passedLingerMs)).toEqual(['end']);
+    });
+
+    it('waits longer after each plane in a busy sky, so a stream of planes shares one card', () => {
+      const sim = new Simulation();
+      sim.step([plane('BAW1')]);
+      sim.confirmCard('card-1');
+      expect(passAndWait(sim, ACTIVITY_RULES.passedLingerMs)).toEqual(['end']);
+
+      expect(sim.step([plane('DLH2')], 3 * MINUTE)).toBe('start');
+      sim.confirmCard('card-2');
+      expect(passAndWait(sim, 20 * SECOND, MINUTE)).toEqual(['none', 'none']);
+
+      expect(sim.step([plane('ELY3')], 30 * SECOND)).toBe('update');
+      expect(passAndWait(sim, 4 * MINUTE, MINUTE)).toEqual(['none', 'end']);
+      expect(sim.state.recentStarts).toHaveLength(2);
+    });
+
+    it('shows every landing of the busy evening of 10 Nov over Ramat Gan with half the starts', () => {
+      // Times the server logged a card for each plane (UTC). With a fresh card per plane, the 10th
+      // (ISR584) was silently dropped by iOS and ISR116 four minutes later got no card at all.
+      const landings = [
+        ['LOT2YE', '17:19:04'],
+        ['BBG271', '17:25:45'],
+        ['ISR730', '17:31:36'],
+        ['BBG251', '17:35:24'],
+        ['WUK582', '17:40:44'],
+        ['ETH414', '17:45:09'],
+        ['ELY324', '17:53:46'],
+        ['ISR047', '17:58:17'],
+        ['AIZ815', '18:01:58'],
+        ['ISR584', '18:12:08'],
+        ['ISR116', '18:16:10'],
+      ] as const;
+      const at = (time: string) => Date.parse(`2026-11-10T${time}Z`);
+      const sim = new Simulation();
+      sim.now = at('17:19:04') - 5 * SECOND;
+      const shown = new Set<string>();
+      let cards = 0;
+
+      for (const [index, [flight, time]] of landings.entries()) {
+        const next = at(landings[index + 1]?.[1] ?? '18:30:00');
+        const stages = [
+          { planes: [plane(flight, 'approaching')], until: at(time) + 45 * SECOND },
+          { planes: [plane(flight, 'overhead')], until: at(time) + 75 * SECOND },
+          { planes: [], until: next },
+        ];
+        for (const { planes, until } of stages) {
+          while (sim.now + 5 * SECOND <= until) {
+            if (sim.step(planes) === 'start') sim.confirmCard(`card-${++cards}`);
+            if ('props' in sim.lastAction && sim.lastAction.props.flight === flight) shown.add(flight);
+          }
+        }
+      }
+
+      expect([...shown]).toEqual(landings.map(([flight]) => flight));
+      expect(cards).toBeLessThanOrEqual(5);
+    });
+
+    it('closes quickly again once the sky has been quiet for a while', () => {
+      const sim = new Simulation();
+      for (const [index, flight] of ['BAW1', 'DLH2', 'ELY3'].entries()) {
+        sim.step([plane(flight)], MINUTE);
+        sim.confirmCard(`card-${index}`);
+      }
+      passAndWait(sim, ACTIVITY_RULES.lingerInBusySkyMs);
+
+      expect(sim.step([plane('AFR4')], ACTIVITY_RULES.busySkyWindowMs)).toBe('start');
+      sim.confirmCard('card-9');
+      expect(passAndWait(sim, ACTIVITY_RULES.passedLingerMs)).toEqual(['end']);
+    });
+  });
+
   it('keeps a Passed card open while the next plane is on its way, then switches to it', () => {
     const sim = new Simulation();
     sim.step([plane('BAW1')]);
@@ -178,9 +261,9 @@ describe('nextStep', () => {
     const sim = new Simulation();
     const starts = Array.from({ length: 11 }, (_, index) => {
       const action = sim.step([plane(`FLT${index}`)]);
-      sim.confirmCard();
+      sim.confirmCard(`card-${index}`);
       sim.step([]);
-      sim.step([], ACTIVITY_RULES.passedLingerMs);
+      sim.step([], ACTIVITY_RULES.lingerInBusySkyMs);
       return action;
     });
     expect(starts).toEqual([...Array(10).fill('start'), 'none']);
@@ -190,9 +273,9 @@ describe('nextStep', () => {
     const sim = new Simulation();
     const startWith = (next: NearbyPlane) => {
       const action = sim.step([next]);
-      sim.confirmCard();
+      sim.confirmCard(`card-${next.flight}`);
       sim.step([]);
-      sim.step([], ACTIVITY_RULES.passedLingerMs);
+      sim.step([], ACTIVITY_RULES.lingerInBusySkyMs);
       return action;
     };
     const heard = (flight: string) => nearbyPlane(flight, { heardDb: 52 });

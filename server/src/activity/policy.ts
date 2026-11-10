@@ -6,6 +6,9 @@ export type PushResult = 'delivered' | 'no-answer' | 'failed' | 'rejected' | 'to
 export const ACTIVITY_RULES = {
   keepAliveMs: 30_000,
   passedLingerMs: 20_000,
+  lingerAfterSecondPlaneMs: 2 * 60_000,
+  lingerInBusySkyMs: 5 * 60_000,
+  busySkyWindowMs: 15 * 60_000,
   circlingLimitMs: 10 * 60_000,
   forgetGoneAfterMs: 2 * 60_000,
   renewAfterMs: 20 * 60_000,
@@ -33,6 +36,7 @@ export interface ActivityState {
   lastSeenAt: Record<string, number>;
   goneSince?: number;
   recentStarts: number[];
+  recentPlanes: number[];
   pausedUntil?: number;
   cardTokens: string[];
   endedTokens: string[];
@@ -64,6 +68,7 @@ export interface StepResult {
 
 export const initialActivityState = (): ActivityState => ({
   recentStarts: [],
+  recentPlanes: [],
   firstSeenAt: {},
   lastSeenAt: {},
   cardTokens: [],
@@ -173,7 +178,7 @@ function wrapUp(
   nextPlaneOnItsWay: boolean,
 ): StepResult {
   const goneSince = state.goneSince ?? now;
-  const lingerOver = now - goneSince >= ACTIVITY_RULES.passedLingerMs;
+  const lingerOver = now - goneSince >= lingerFor(state);
   const holdForNextPlane = nextPlaneOnItsWay && showing.props.stage !== 'approaching';
   if (lingerOver && !holdForNextPlane) return end(state, showing);
   if (showing.props.stage === 'overhead') {
@@ -191,14 +196,17 @@ function start(state: ActivityState, props: ActivityProps, now: number): StepRes
       showing: { props, startedAt: now, sentAt: now, awaitingTokenSince: now },
       lastProps: props,
       recentStarts: [...startsWithinHour(state.recentStarts, now), now],
+      recentPlanes: withNewPlane(state.recentPlanes, now),
     },
   };
 }
 
 function update(state: ActivityState, showing: ShowingCard, props: ActivityProps, now: number): StepResult {
+  const newPlane = props.flight !== showing.props.flight;
+  const recentPlanes = newPlane ? withNewPlane(state.recentPlanes, now) : state.recentPlanes;
   return {
     action: { type: 'update', props },
-    state: { ...state, showing: { ...showing, props, sentAt: now }, lastProps: props },
+    state: { ...state, showing: { ...showing, props, sentAt: now }, lastProps: props, recentPlanes },
   };
 }
 
@@ -228,6 +236,21 @@ function mayStart(state: ActivityState, now: number, plane: NearbyPlane): boolea
     ACTIVITY_RULES.maxStartsPerHour -
     (plane.heardDb === undefined ? 0 : ACTIVITY_RULES.startsKeptForClosePlanes);
   return !paused && startsWithinHour(state.recentStarts, now).length < limit;
+}
+
+// The busier the sky has been, the longer a Passed card waits for the next plane, so a stream of
+// planes shares one card instead of spending a start each. A lone plane still closes quickly.
+function lingerFor(state: ActivityState): number {
+  const planes = state.recentPlanes.length;
+  if (planes >= 3) return ACTIVITY_RULES.lingerInBusySkyMs;
+  return planes === 2 ? ACTIVITY_RULES.lingerAfterSecondPlaneMs : ACTIVITY_RULES.passedLingerMs;
+}
+
+// A streak of planes, each within the busy-sky window of the one before. Three is all the linger needs.
+function withNewPlane(recentPlanes: number[], now: number): number[] {
+  const last = recentPlanes.at(-1);
+  const streak = last !== undefined && now - last < ACTIVITY_RULES.busySkyWindowMs ? recentPlanes : [];
+  return [...streak, now].slice(-3);
 }
 
 function startsWithinHour(starts: number[], now: number): number[] {
