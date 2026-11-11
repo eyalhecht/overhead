@@ -8,6 +8,8 @@ export interface RouteSource {
 
 export interface RouteDirectory extends RouteSource {
   load(): Promise<void>;
+  // Distinct flights asked for since the last call, and how many had a route.
+  takeCoverage(): { asked: number; found: number };
 }
 
 // Virtual Radar Server standing data (CC0), the daily single-file copy of its routes.
@@ -20,6 +22,8 @@ const airports: Record<string, string[]> = airportsByIcao;
 // A failed download keeps the routes already loaded.
 export function createRouteDirectory(fetchFn: typeof fetch = fetch): RouteDirectory {
   let routes = new Map<string, string>();
+  let asked = new Set<string>();
+  let found = new Set<string>();
 
   return {
     async load() {
@@ -37,7 +41,16 @@ export function createRouteDirectory(fetchFn: typeof fetch = fetch): RouteDirect
     routeFor(flight) {
       const stops = routes.get(flight)?.split('-');
       // A flight with stopovers could be on any leg, so it shows no route rather than a wrong one.
-      return stops?.length === 2 ? routeBetween(stops[0]!, stops[1]!) : null;
+      const route = stops?.length === 2 ? routeBetween(stops[0]!, stops[1]!) : null;
+      asked.add(flight);
+      if (route) found.add(flight);
+      return route;
+    },
+    takeCoverage() {
+      const coverage = { asked: asked.size, found: found.size };
+      asked = new Set();
+      found = new Set();
+      return coverage;
     },
   };
 }

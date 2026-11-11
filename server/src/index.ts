@@ -11,6 +11,7 @@ import { createUserStore, memoryStorage, sqliteStorage } from './users.js';
 
 const DRY_RUN_DEVICE = 'dry-run-device';
 const ROUTE_RELOAD_MS = 24 * 60 * 60 * 1000;
+const ROUTE_COVERAGE_EVERY_MS = 60 * 60 * 1000;
 
 const config = loadConfig();
 for (const warning of configWarnings(config)) console.warn(`Config: ${warning}`);
@@ -23,6 +24,10 @@ const feeds = config.flyItalyApiKey ? [flyItalyAdsb(config.flyItalyApiKey), adsb
 const routes = createRouteDirectory();
 void routes.load();
 setInterval(() => void routes.load(), ROUTE_RELOAD_MS).unref();
+setInterval(() => {
+  const { asked, found } = routes.takeCoverage();
+  if (asked > 0) console.log(`Routes: found ${found} of ${asked} flights on cards in the last hour`);
+}, ROUTE_COVERAGE_EVERY_MS).unref();
 const sky = createSky(createPositionSource(feeds), routes, noise);
 const push = config.apns ? createApnsClient(config.apns) : createDryRunPushClient(simulateCardOpened);
 const watcher = createWatcher({
