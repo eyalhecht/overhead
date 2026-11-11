@@ -10,3 +10,6 @@ android/
 
 # EASA aircraft noise data has no license to redistribute; the server downloads it at deploy
 server/data/anp/
+
+# Personal notes, never committed
+private/

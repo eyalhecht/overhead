@@ -26,6 +26,12 @@ export async function requestLocationAccess(): Promise<boolean> {
   return granted;
 }
 
+export async function stopBackgroundLocation(): Promise<void> {
+  if (await Location.hasStartedLocationUpdatesAsync(BACKGROUND_TASK)) {
+    await Location.stopLocationUpdatesAsync(BACKGROUND_TASK);
+  }
+}
+
 async function startBackgroundLocation(): Promise<void> {
   const { granted } = await Location.requestBackgroundPermissionsAsync();
   if (!granted || (await Location.hasStartedLocationUpdatesAsync(BACKGROUND_TASK))) return;

@@ -11,7 +11,7 @@ const optionalNumber = z.preprocess(
 const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8080),
   APP_KEY: optionalString,
-  FR24_TOKEN: optionalString,
+  FLYITALY_API_KEY: optionalString,
   APNS_KEY_PATH: optionalString,
   APNS_KEY_ID: optionalString,
   APNS_TEAM_ID: optionalString,
@@ -34,7 +34,7 @@ export interface ApnsConfig {
 export interface Config {
   port: number;
   appKey?: string;
-  fr24Token?: string;
+  flyItalyApiKey?: string;
   databasePath?: string;
   apns?: ApnsConfig;
   demoLocation?: GeoPoint;
@@ -47,7 +47,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     port: parsed.PORT,
     appKey: parsed.APP_KEY,
-    fr24Token: parsed.FR24_TOKEN,
+    flyItalyApiKey: parsed.FLYITALY_API_KEY,
     databasePath: parsed.DATABASE_PATH,
     apns,
     demoLocation:

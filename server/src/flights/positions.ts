@@ -2,40 +2,126 @@ import type { GeoPoint } from '@overhead/shared';
 import { z } from 'zod';
 import { distanceAndBearing, type Aircraft } from './geometry.js';
 
+export interface Feed {
+  name: string;
+  requestGapMs: number;
+  request(tile: Tile): { url: string; headers?: Record<string, string> };
+}
+
+export interface Tile {
+  key: string;
+  center: GeoPoint;
+  radiusNm: number;
+}
+
 export interface PositionSource {
-  aircraftNear(point: GeoPoint, radiusNm: number): Promise<Aircraft[]>;
+  refresh(points: GeoPoint[]): Promise<void>;
+  aircraftNear(point: GeoPoint, radiusNm: number): Aircraft[];
 }
 
-const FEED_TIMEOUT_MS = 4000;
-const MIN_REQUEST_GAP_MS = 1000;
-const AREA_DEGREES = 0.1;
-const AREA_MARGIN_NM = 4.5;
-const SHARE_AREA_FOR_MS = 4000;
+type LocatedAircraft = Omit<Aircraft, 'distanceNm' | 'bearingDeg'> & GeoPoint;
 
-type LocatedAircraft = Aircraft & GeoPoint;
-
-interface Area {
-  fetchedAt: number;
-  aircraft: Promise<LocatedAircraft[]>;
-}
+type Snapshot = { aircraft: LocatedAircraft[] } | { failure: string };
 
 interface PositionSourceOptions {
+  fetchFn?: typeof fetch;
   now?: () => number;
-  minRequestGapMs?: number;
 }
 
-const FEEDS = [
-  {
-    name: 'adsb.fi',
-    url: (point: GeoPoint, radiusNm: number) =>
-      `https://opendata.adsb.fi/api/v3/lat/${point.lat}/lon/${point.lon}/dist/${radiusNm}`,
-  },
-  {
+const TILE_DEGREES = 2;
+const TILE_MARGIN_NM = 15;
+const NM_PER_DEGREE = 60;
+const KM_PER_NM = 1.852;
+const FEED_TIMEOUT_MS = 4000;
+
+export function adsbLol(): Feed {
+  return {
     name: 'adsb.lol',
-    url: (point: GeoPoint, radiusNm: number) =>
-      `https://api.adsb.lol/v2/point/${point.lat}/${point.lon}/${radiusNm}`,
-  },
-];
+    requestGapMs: 1000,
+    request: ({ center, radiusNm }) => ({
+      url: `https://api.adsb.lol/v2/point/${center.lat}/${center.lon}/${Math.ceil(radiusNm)}`,
+    }),
+  };
+}
+
+export function flyItalyAdsb(apiKey: string): Feed {
+  return {
+    name: 'FlyItalyADSB',
+    requestGapMs: 200,
+    request: ({ center, radiusNm }) => ({
+      url: `https://api.flyitalyadsb.com/v2/lat/${center.lat}/lon/${center.lon}/dist/${Math.ceil(radiusNm * KM_PER_NM)}`,
+      headers: { 'X-Api-Key': apiKey },
+    }),
+  };
+}
+
+// Fixed tiles, so a feed only ever sees a grid square, never anything built around a phone.
+// Each tile's query reaches past its edges far enough to cover every phone's search circle inside it.
+export function tileAt({ lat, lon }: GeoPoint): Tile {
+  const row = Math.floor(lat / TILE_DEGREES);
+  const column = Math.floor(lon / TILE_DEGREES);
+  const center = { lat: (row + 0.5) * TILE_DEGREES, lon: (column + 0.5) * TILE_DEGREES };
+  const halfHeightNm = (TILE_DEGREES / 2) * NM_PER_DEGREE;
+  const halfWidthNm = halfHeightNm * Math.cos((center.lat * Math.PI) / 180);
+  return {
+    key: `${row}:${column}`,
+    center,
+    radiusNm: Math.hypot(halfHeightNm, halfWidthNm) + TILE_MARGIN_NM,
+  };
+}
+
+// The latest snapshot per tile where at least one phone is watched, from the first feed that answers.
+// Feeds are never merged: their licences (CC BY-SA and ODbL) are incompatible.
+export function createPositionSource(
+  feeds: Feed[],
+  { fetchFn = fetch, now = Date.now }: PositionSourceOptions = {},
+): PositionSource {
+  const snapshots = new Map<string, Snapshot>();
+  const nextRequestAt = new Map<string, number>();
+
+  async function waitForTurn(feed: Feed): Promise<void> {
+    const waitMs = Math.max(0, (nextRequestAt.get(feed.name) ?? 0) - now());
+    nextRequestAt.set(feed.name, now() + waitMs + feed.requestGapMs);
+    if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+
+  async function fetchTile(tile: Tile): Promise<Snapshot> {
+    const failures: string[] = [];
+    for (const feed of feeds) {
+      try {
+        await waitForTurn(feed);
+        const { url, headers } = feed.request(tile);
+        const response = await fetchFn(url, { headers, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) });
+        if (response.ok) return { aircraft: parseReadsbResponse(await response.json()) };
+        failures.push(`${feed.name} responded ${response.status}`);
+      } catch (error) {
+        failures.push(`${feed.name} failed: ${(error as Error).message}`);
+      }
+    }
+    return { failure: `All position feeds failed (${failures.join('; ')})` };
+  }
+
+  function snapshotAt(point: GeoPoint): Snapshot {
+    return snapshots.get(tileAt(point).key) ?? { failure: 'No snapshot of this area yet' };
+  }
+
+  return {
+    async refresh(points) {
+      const tiles = new Map(points.map((point) => [tileAt(point).key, tileAt(point)]));
+      for (const key of snapshots.keys()) if (!tiles.has(key)) snapshots.delete(key);
+      await Promise.all(
+        [...tiles.values()].map(async (tile) => snapshots.set(tile.key, await fetchTile(tile))),
+      );
+    },
+    aircraftNear(point, radiusNm) {
+      const snapshot = snapshotAt(point);
+      if ('failure' in snapshot) throw new Error(snapshot.failure);
+      return snapshot.aircraft
+        .map((plane) => ({ ...plane, ...distanceAndBearing(point, plane) }))
+        .filter((plane) => plane.distanceNm <= radiusNm);
+    },
+  };
+}
 
 const ReadsbAircraftSchema = z.object({
   hex: z.string(),
@@ -47,77 +133,15 @@ const ReadsbAircraftSchema = z.object({
   track: z.number().default(0),
   lat: z.number(),
   lon: z.number(),
-  dst: z.number(),
-  dir: z.number(),
 });
 
 const ReadsbResponseSchema = z.object({ ac: z.array(z.unknown()).default([]) });
-
-export function createPositionSource(
-  fetchFn: typeof fetch = fetch,
-  { now = Date.now, minRequestGapMs = MIN_REQUEST_GAP_MS }: PositionSourceOptions = {},
-): PositionSource {
-  const areas = new Map<string, Area>();
-  const nextRequestAt = new Map<string, number>();
-
-  async function waitForTurn(feedName: string): Promise<void> {
-    const waitMs = Math.max(0, (nextRequestAt.get(feedName) ?? 0) - now());
-    nextRequestAt.set(feedName, now() + waitMs + minRequestGapMs);
-    if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
-
-  async function fetchArea(center: GeoPoint, radiusNm: number): Promise<LocatedAircraft[]> {
-    const failures: string[] = [];
-    for (const feed of FEEDS) {
-      try {
-        await waitForTurn(feed.name);
-        const response = await fetchFn(feed.url(center, radiusNm), {
-          signal: AbortSignal.timeout(FEED_TIMEOUT_MS),
-        });
-        if (response.ok) return parseReadsbResponse(await response.json());
-        failures.push(`${feed.name} responded ${response.status}`);
-      } catch (error) {
-        failures.push(`${feed.name} failed: ${(error as Error).message}`);
-      }
-    }
-    throw new Error(`All position feeds failed (${failures.join('; ')})`);
-  }
-
-  function sharedArea(point: GeoPoint, radiusNm: number): Area {
-    const center = areaCenter(point);
-    const key = `${center.lat},${center.lon},${radiusNm}`;
-    for (const [oldKey, area] of areas) {
-      if (now() - area.fetchedAt > SHARE_AREA_FOR_MS) areas.delete(oldKey);
-    }
-    const area = areas.get(key) ?? {
-      fetchedAt: now(),
-      aircraft: fetchArea(center, radiusNm + AREA_MARGIN_NM),
-    };
-    areas.set(key, area);
-    return area;
-  }
-
-  return {
-    async aircraftNear(point, radiusNm) {
-      const aircraft = await sharedArea(point, radiusNm).aircraft;
-      return aircraft
-        .map((plane) => ({ ...plane, ...distanceAndBearing(point, plane) }))
-        .filter((plane) => plane.distanceNm <= radiusNm);
-    },
-  };
-}
-
-function areaCenter({ lat, lon }: GeoPoint): GeoPoint {
-  const center = (degrees: number) =>
-    Number(((Math.floor(degrees / AREA_DEGREES) + 0.5) * AREA_DEGREES).toFixed(2));
-  return { lat: center(lat), lon: center(lon) };
-}
 
 export function parseReadsbResponse(body: unknown): LocatedAircraft[] {
   return ReadsbResponseSchema.parse(body).ac.flatMap((entry) => {
     const parsed = ReadsbAircraftSchema.safeParse(entry);
     if (!parsed.success) return [];
-    const { hex, flight, t, alt_baro, baro_rate, gs, track, lat, lon, dst, dir } = parsed.data;
+    const { hex, flight, t, alt_baro, baro_rate, gs, track, lat, lon } = parsed.data;
     return [
       {
         id: hex,
@@ -129,8 +153,6 @@ export function parseReadsbResponse(body: unknown): LocatedAircraft[] {
         verticalRateFpm: baro_rate,
         groundSpeedKt: gs,
         trackDeg: track,
-        distanceNm: dst,
-        bearingDeg: dir,
       },
     ];
   });

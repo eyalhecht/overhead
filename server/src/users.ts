@@ -21,6 +21,7 @@ export interface UserStore {
   find(deviceId: string): User | undefined;
   all(): User[];
   save(user: User): void;
+  remove(deviceId: string): void;
   close(): void;
 }
 
@@ -44,7 +45,7 @@ export class UserLimitError extends Error {
 }
 
 export function createUserStore({
-  maxUsers = 100,
+  maxUsers = 20_000,
   storage = memoryStorage(),
   now = Date.now,
 }: UserStoreOptions = {}): UserStore {
@@ -108,6 +109,11 @@ export function createUserStore({
       if (users.get(user.deviceId) === user) storage.write(user);
     },
 
+    remove(deviceId) {
+      users.delete(deviceId);
+      storage.remove(deviceId);
+    },
+
     close() {
       storage.close();
     },
@@ -121,6 +127,8 @@ export function memoryStorage(): UserStorage {
 export function sqliteStorage(path: string): UserStorage {
   closeSync(openSync(path, 'a', OWNER_ONLY));
   const db = new Database(path);
+  db.pragma('journal_mode = WAL');
+  db.pragma('synchronous = NORMAL');
   db.exec('CREATE TABLE IF NOT EXISTS users (device_id TEXT PRIMARY KEY, data TEXT NOT NULL)');
   const upsert = db.prepare(
     'INSERT INTO users (device_id, data) VALUES (?, ?) ON CONFLICT (device_id) DO UPDATE SET data = excluded.data',

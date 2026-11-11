@@ -2,8 +2,8 @@
 set -euo pipefail
 
 PROJECT=overhead-eyal
-ZONE=us-central1-a
-VM=overhead
+ZONE=${ZONE:-us-central1-a}
+VM=${VM:-overhead}
 RELEASE=$(git rev-parse --short HEAD)
 ARCHIVE=$(mktemp -t overhead-XXXX.tar.gz)
 

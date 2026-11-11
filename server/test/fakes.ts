@@ -20,8 +20,13 @@ export class FakeSky implements Sky {
   planes: NearbyPlane[] = [];
   feedDown = false;
   planesAt?: (point: GeoPoint) => NearbyPlane[];
+  refreshedFor: GeoPoint[][] = [];
 
-  async planesAbove(point: GeoPoint): Promise<NearbyPlane[]> {
+  async refresh(points: GeoPoint[]): Promise<void> {
+    this.refreshedFor.push(points);
+  }
+
+  planesAbove(point: GeoPoint): NearbyPlane[] {
     if (this.feedDown) throw new Error('All position feeds failed');
     return this.planesAt?.(point) ?? this.planes;
   }

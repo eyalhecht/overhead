@@ -32,8 +32,6 @@ describe('parseReadsbResponse', () => {
         altitudeFt: 3400,
         groundSpeedKt: 140,
         trackDeg: 250,
-        distanceNm: 0.8,
-        bearingDeg: 70,
       },
     ]);
   });

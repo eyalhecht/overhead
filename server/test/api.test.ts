@@ -27,6 +27,47 @@ describe('API', () => {
     await request(app).get('/sky?deviceId=phone-1').expect(401);
   });
 
+  it('turns away a phone that calls far more often than the app ever does', async () => {
+    let status = 0;
+    for (let call = 0; call < 61; call += 1) {
+      ({ status } = await authorized(request(app).get('/sky?deviceId=phone-1')));
+    }
+    expect(status).toBe(429);
+    await authorized(request(app).get('/sky?deviceId=phone-2')).expect(200);
+  });
+
+  describe('deleting my data', () => {
+    it('removes the phone and everything stored about it', async () => {
+      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
+      await authorized(request(app).delete('/me?deviceId=phone-1')).expect(204);
+      expect(users.all()).toEqual([]);
+    });
+
+    it('ends a card still on the Lock Screen before forgetting the phone', async () => {
+      const push = new FakePush();
+      watcher = createWatcher({ users, sky, push });
+      app = createApp({ appKey: APP_KEY, users, watcher });
+      sky.planes = [nearbyPlane('BAW1')];
+      await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
+      await watcher.tick();
+      await authorized(request(app).post('/register'))
+        .send(registerRequest({ activityTokens: ['card-1'] }))
+        .expect(204);
+
+      await authorized(request(app).delete('/me?deviceId=phone-1')).expect(204);
+
+      expect(push.sent.at(-1)).toMatchObject({ token: 'card-1', event: 'end' });
+    });
+
+    it('answers the same whether or not the phone was known', async () => {
+      await authorized(request(app).delete('/me?deviceId=never-seen')).expect(204);
+    });
+
+    it('needs the app key', async () => {
+      await request(app).delete('/me?deviceId=phone-1').expect(401);
+    });
+  });
+
   it('registers a phone', async () => {
     await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
     expect(users.all()).toHaveLength(1);

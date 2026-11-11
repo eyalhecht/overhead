@@ -2,14 +2,15 @@ import { fileURLToPath } from 'node:url';
 import { createWatcher } from './activity/watcher.js';
 import { createApp } from './api/app.js';
 import { configWarnings, loadConfig } from './config.js';
-import { createPositionSource } from './flights/positions.js';
-import { createRouteSource } from './flights/routes.js';
+import { adsbLol, createPositionSource, flyItalyAdsb } from './flights/positions.js';
+import { createRouteDirectory } from './flights/routes.js';
 import { loadNoiseModel } from './flights/noise.js';
 import { createSky } from './flights/sky.js';
 import { createApnsClient, createDryRunPushClient } from './push/apns.js';
 import { createUserStore, memoryStorage, sqliteStorage } from './users.js';
 
 const DRY_RUN_DEVICE = 'dry-run-device';
+const ROUTE_RELOAD_MS = 24 * 60 * 60 * 1000;
 
 const config = loadConfig();
 for (const warning of configWarnings(config)) console.warn(`Config: ${warning}`);
@@ -18,7 +19,11 @@ const users = createUserStore({
 });
 const noise = loadNoiseModel(fileURLToPath(new URL('../data/anp', import.meta.url)));
 if (!noise) console.warn('Noise data missing in server/data/anp, so only planes passing close get cards');
-const sky = createSky(createPositionSource(), createRouteSource({ fr24Token: config.fr24Token }), noise);
+const feeds = config.flyItalyApiKey ? [flyItalyAdsb(config.flyItalyApiKey), adsbLol()] : [adsbLol()];
+const routes = createRouteDirectory();
+void routes.load();
+setInterval(() => void routes.load(), ROUTE_RELOAD_MS).unref();
+const sky = createSky(createPositionSource(feeds), routes, noise);
 const push = config.apns ? createApnsClient(config.apns) : createDryRunPushClient(simulateCardOpened);
 const watcher = createWatcher({
   users,

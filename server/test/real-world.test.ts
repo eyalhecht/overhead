@@ -234,7 +234,7 @@ describe('real-world situations', () => {
 
   it('keeps serving other users while one of them cannot be watched', async () => {
     world.sky.planesAt = (point) => {
-      if (point.lat === BERLIN.lat) throw new Error('adsb.fi responded 429');
+      if (point.lat === BERLIN.lat) throw new Error('adsb.lol responded 429');
       return [nearbyPlane('ELY001')];
     };
     world.join({ ...BERLIN, deviceId: 'berlin', startToken: 'berlin-start' });
