@@ -5,6 +5,8 @@ PROJECT=overhead-eyal
 ZONE=${ZONE:-us-central1-a}
 VM=${VM:-overhead}
 RELEASE=$(git rev-parse --short HEAD)
+IP=$(gcloud compute instances describe "$VM" --project "$PROJECT" --zone "$ZONE" --format 'value(networkInterfaces[0].accessConfigs[0].natIP)')
+SITE="${IP//./-}.sslip.io"
 ARCHIVE=$(mktemp -t overhead-XXXX.tar.gz)
 
 git archive --format=tar.gz -o "$ARCHIVE" HEAD
@@ -34,7 +36,7 @@ gcloud compute ssh "$VM" --project "$PROJECT" --zone "$ZONE" --quiet --command "
   [ -d /opt/overhead/app ] && sudo mv /opt/overhead/app /opt/overhead/app.previous
   sudo mv /opt/overhead/app.next /opt/overhead/app
   sudo cp /opt/overhead/app/deploy/overhead.service /etc/systemd/system/overhead.service
-  sudo cp /opt/overhead/app/deploy/Caddyfile /etc/caddy/Caddyfile
+  sed 's/SITE_ADDRESS/$SITE/' /opt/overhead/app/deploy/Caddyfile | sudo tee /etc/caddy/Caddyfile >/dev/null
   sudo systemctl daemon-reload
   sudo systemctl enable --now overhead caddy
   sudo systemctl restart overhead
@@ -42,4 +44,4 @@ gcloud compute ssh "$VM" --project "$PROJECT" --zone "$ZONE" --quiet --command "
   curl -fsS http://127.0.0.1:8080/health || { sudo journalctl -u overhead -n 30 --no-pager; exit 1; }
   sudo systemctl reload caddy
 "
-echo "Deployed $RELEASE"
+echo "Deployed $RELEASE to https://$SITE"

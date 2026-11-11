@@ -1,4 +1,4 @@
-34-71-157-28.sslip.io {
+SITE_ADDRESS {
 	encode gzip
 	reverse_proxy 127.0.0.1:8080
 }
