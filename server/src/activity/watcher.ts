@@ -25,6 +25,7 @@ export interface Watcher {
   reportCardTokens(user: User, tokens: string[]): Promise<void>;
   planesFor(user: User): NearbyPlane[];
   appOpened(user: User): void;
+  forget(user: User): Promise<void>;
 }
 
 export function createWatcher({
@@ -130,6 +131,17 @@ export function createWatcher({
     }
   }
 
+  // Deleting a phone's data ends any card still on its Lock Screen first, then removes the phone.
+  async function forget(user: User): Promise<void> {
+    const props = user.activity.showing?.props ?? user.activity.lastProps;
+    if (props)
+      await send(
+        user,
+        user.activity.cardTokens.map((token) => ({ token, event: 'end', props })),
+      );
+    users.remove(user.deviceId);
+  }
+
   async function reportCardTokens(user: User, tokens: string[]): Promise<void> {
     const { state, pushes } = receiveCardTokens(user.activity, tokens);
     user.activity = state;
@@ -159,5 +171,6 @@ export function createWatcher({
     reportCardTokens,
     planesFor: (user) => planesSeen.get(user) ?? [],
     appOpened: (user) => appOpenAt.set(user, now()),
+    forget,
   };
 }

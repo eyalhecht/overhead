@@ -17,6 +17,10 @@ export async function register(body: RegisterRequest): Promise<void> {
   await request('/register', { method: 'POST', body: JSON.stringify({ ...body, ...roughLocation(body) }) });
 }
 
+export async function forgetPhone(deviceId: string): Promise<void> {
+  await request(`/me?deviceId=${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
 export async function fetchSky(deviceId: string): Promise<SkySnapshot> {
   const response = await request(`/sky?deviceId=${encodeURIComponent(deviceId)}`);
   return (await response.json()) as SkySnapshot;

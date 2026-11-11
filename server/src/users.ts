@@ -21,6 +21,7 @@ export interface UserStore {
   find(deviceId: string): User | undefined;
   all(): User[];
   save(user: User): void;
+  remove(deviceId: string): void;
   close(): void;
 }
 
@@ -106,6 +107,11 @@ export function createUserStore({
 
     save(user) {
       if (users.get(user.deviceId) === user) storage.write(user);
+    },
+
+    remove(deviceId) {
+      users.delete(deviceId);
+      storage.remove(deviceId);
     },
 
     close() {

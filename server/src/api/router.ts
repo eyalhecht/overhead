@@ -26,6 +26,17 @@ export function createRouter({ users, watcher, now = Date.now }: RouterDependenc
     res.status(204).end();
   });
 
+  router.delete('/me', async (req, res) => {
+    const { deviceId } = SkyQuerySchema.parse(req.query);
+    if (!allowRegister(deviceId)) return tooMany(res);
+    const user = users.find(deviceId);
+    if (user) {
+      await watcher.forget(user);
+      console.log(`${userLabel(user)} phone deleted its data`);
+    }
+    res.status(204).end();
+  });
+
   router.get('/sky', (req, res) => {
     const { deviceId } = SkyQuerySchema.parse(req.query);
     if (!allowSky(deviceId)) return tooMany(res);

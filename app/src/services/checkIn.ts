@@ -7,6 +7,7 @@ import { register } from './api';
 import { QUIET_HOURS } from '@overhead/shared/rules';
 import { cardsTooOld, isCheckInDue, type LastReport } from '@/lib/checkInSchedule';
 import { createLocationMemory } from './locationMemory';
+import { isOnboarded } from './onboarding';
 import { loadSettings, onSettingsChange } from './settings';
 
 const MAINTENANCE_INTERVAL_MS = 5000;
@@ -27,7 +28,7 @@ export async function checkIn(location?: GeoPoint): Promise<void> {
 async function report(location?: GeoPoint): Promise<void> {
   if (location) await locationMemory.remember(location);
   const target = await locationMemory.recall();
-  if (!target) return;
+  if (!target || !(await isOnboarded())) return;
 
   const [deviceId, settings, cardTokens] = await Promise.all([
     getIosIdForVendorAsync(),

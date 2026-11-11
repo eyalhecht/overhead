@@ -1,10 +1,12 @@
 import { clockTime, QUIET_HOURS } from '@overhead/shared/rules';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { useSettings } from '@/hooks/useSettings';
 import { themedStyles, useColors } from '@/lib/theme';
+import { deleteMyData } from '@/services/myData';
 import type { Settings } from '@/services/settings';
 
 const OPTIONS: { key: keyof Settings; label: string; help: string }[] = [
@@ -51,9 +53,31 @@ export default function SettingsScreen() {
         ))}
 
       <View style={styles.spacer} />
+      <Button label="Delete my data" variant="plain" onPress={confirmDeletion} />
       <Text style={styles.footnote}>Only a location rounded to about 100 m leaves your phone.</Text>
     </Screen>
   );
+}
+
+function confirmDeletion(): void {
+  Alert.alert(
+    'Delete my data?',
+    'Overhead’s server and this phone forget your location, settings and cards right away. You can start again any time.',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => void deleteAndStartOver() },
+    ],
+  );
+}
+
+async function deleteAndStartOver(): Promise<void> {
+  try {
+    await deleteMyData();
+    router.dismissAll();
+    router.replace('/welcome');
+  } catch {
+    Alert.alert('Could not delete your data', 'Check your connection and try again.');
+  }
 }
 
 const useStyles = themedStyles((colors) =>
