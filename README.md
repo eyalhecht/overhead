@@ -88,7 +88,7 @@ CI runs all three on every pull request, plus a secret scan. Running the server 
 
 ## Deployment
 
-The server runs on a Google Cloud e2-micro VM as a systemd service, behind Caddy for automatic HTTPS. `deploy/deploy.sh` ships the committed code, installs the server's dependencies and restarts the service; secrets live only on the VM. The app is built with EAS: `eas build --profile preview` produces an installable build that talks to the deployed server.
+The server runs on one Google Cloud e2-small VM in Frankfurt (`europe-west3`) as a systemd service, behind Caddy for automatic HTTPS. `deploy/create-vm.sh` sets up a new VM once; `deploy/deploy.sh` ships the committed code, installs the server's dependencies, restarts the service and waits for `/health`; secrets live only on the VM. The app is built with EAS: the `production` profile builds for TestFlight and talks to the deployed server.
 
 ## Limits
 
