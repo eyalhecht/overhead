@@ -65,6 +65,14 @@ describe('route directory', () => {
     expect(routes.routeFor('ETD597')).toMatchObject({ to: 'TLV' });
   });
 
+  it('counts the distinct flights asked for and how many had a route, then starts over', async () => {
+    const routes = await loaded();
+    for (const flight of ['ETD597', 'ETD597', 'ISR047', 'BAW982']) routes.routeFor(flight);
+
+    expect(routes.takeCoverage()).toEqual({ asked: 3, found: 2 });
+    expect(routes.takeCoverage()).toEqual({ asked: 0, found: 0 });
+  });
+
   it('knows no routes until the first download, without failing', () => {
     expect(createRouteDirectory(fetchFn).routeFor('ETD597')).toBeNull();
   });
