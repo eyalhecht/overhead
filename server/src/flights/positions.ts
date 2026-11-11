@@ -2,15 +2,8 @@ import type { GeoPoint } from '@overhead/shared';
 import { z } from 'zod';
 import { distanceAndBearing, type Aircraft } from './geometry.js';
 
-export interface Credit {
-  source: string;
-  url: string;
-  licence: string;
-}
-
 export interface Feed {
   name: string;
-  credit: Credit;
   requestGapMs: number;
   request(tile: Tile): { url: string; headers?: Record<string, string> };
 }
@@ -24,12 +17,11 @@ export interface Tile {
 export interface PositionSource {
   refresh(points: GeoPoint[]): Promise<void>;
   aircraftNear(point: GeoPoint, radiusNm: number): Aircraft[];
-  creditFor(point: GeoPoint): Credit | undefined;
 }
 
 type LocatedAircraft = Omit<Aircraft, 'distanceNm' | 'bearingDeg'> & GeoPoint;
 
-type Snapshot = { aircraft: LocatedAircraft[]; credit: Credit } | { failure: string };
+type Snapshot = { aircraft: LocatedAircraft[] } | { failure: string };
 
 interface PositionSourceOptions {
   fetchFn?: typeof fetch;
@@ -45,7 +37,6 @@ const FEED_TIMEOUT_MS = 4000;
 export function adsbLol(): Feed {
   return {
     name: 'adsb.lol',
-    credit: { source: 'adsb.lol', url: 'https://adsb.lol', licence: 'ODbL 1.0' },
     requestGapMs: 1000,
     request: ({ center, radiusNm }) => ({
       url: `https://api.adsb.lol/v2/point/${center.lat}/${center.lon}/${Math.ceil(radiusNm)}`,
@@ -56,7 +47,6 @@ export function adsbLol(): Feed {
 export function flyItalyAdsb(apiKey: string): Feed {
   return {
     name: 'FlyItalyADSB',
-    credit: { source: 'FlyItalyADSB', url: 'https://flyitalyadsb.com', licence: 'CC BY-SA 4.0' },
     requestGapMs: 200,
     request: ({ center, radiusNm }) => ({
       url: `https://api.flyitalyadsb.com/v2/lat/${center.lat}/lon/${center.lon}/dist/${Math.ceil(radiusNm * KM_PER_NM)}`,
@@ -81,7 +71,7 @@ export function tileAt({ lat, lon }: GeoPoint): Tile {
 }
 
 // The latest snapshot per tile where at least one phone is watched, from the first feed that answers.
-// Feeds are never merged: their licences are incompatible, and each tile keeps the credit of its source.
+// Feeds are never merged: their licences (CC BY-SA and ODbL) are incompatible.
 export function createPositionSource(
   feeds: Feed[],
   { fetchFn = fetch, now = Date.now }: PositionSourceOptions = {},
@@ -102,7 +92,7 @@ export function createPositionSource(
         await waitForTurn(feed);
         const { url, headers } = feed.request(tile);
         const response = await fetchFn(url, { headers, signal: AbortSignal.timeout(FEED_TIMEOUT_MS) });
-        if (response.ok) return { aircraft: parseReadsbResponse(await response.json()), credit: feed.credit };
+        if (response.ok) return { aircraft: parseReadsbResponse(await response.json()) };
         failures.push(`${feed.name} responded ${response.status}`);
       } catch (error) {
         failures.push(`${feed.name} failed: ${(error as Error).message}`);
@@ -129,10 +119,6 @@ export function createPositionSource(
       return snapshot.aircraft
         .map((plane) => ({ ...plane, ...distanceAndBearing(point, plane) }))
         .filter((plane) => plane.distanceNm <= radiusNm);
-    },
-    creditFor(point) {
-      const snapshot = snapshotAt(point);
-      return 'credit' in snapshot ? snapshot.credit : undefined;
     },
   };
 }

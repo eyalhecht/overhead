@@ -107,16 +107,12 @@ describe('position feeds', () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
-  it('uses only the main feed while it answers, and credits it', async () => {
+  it('uses only the main feed while it answers', async () => {
     const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(json(capturedOverBenGurion));
     const positions = sourceWith(fetchFn);
     await positions.refresh([BEN_GURION]);
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
-    expect(positions.creditFor(BEN_GURION)).toMatchObject({
-      source: 'FlyItalyADSB',
-      licence: 'CC BY-SA 4.0',
-    });
   });
 
   it('switches the whole tile to the backup when the main feed fails, never mixing the two', async () => {
@@ -129,7 +125,6 @@ describe('position feeds', () => {
 
     expect(String(fetchFn.mock.calls[1]?.[0])).toContain('api.adsb.lol');
     expect(positions.aircraftNear(BEN_GURION, 10)).toHaveLength(2);
-    expect(positions.creditFor(BEN_GURION)).toMatchObject({ source: 'adsb.lol', licence: 'ODbL 1.0' });
   });
 
   it('falls back when the main feed does not answer in time', async () => {
@@ -153,7 +148,6 @@ describe('position feeds', () => {
     expect(() => positions.aircraftNear(BEN_GURION, 3)).toThrow(
       /FlyItalyADSB responded 503.*adsb\.lol failed: getaddrinfo ENOTFOUND/,
     );
-    expect(positions.creditFor(BEN_GURION)).toBeUndefined();
   });
 
   it('stops fetching a tile once nobody is watched there', async () => {
@@ -195,7 +189,6 @@ describe('the sky above a user', () => {
   const fixedFeed = (list: Aircraft[]): PositionSource => ({
     refresh: async () => {},
     aircraftNear: () => list,
-    creditFor: () => undefined,
   });
   const knownRoutes = (): RouteSource & { asked: string[] } => {
     const asked: string[] = [];

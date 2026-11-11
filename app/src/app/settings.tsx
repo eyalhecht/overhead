@@ -1,6 +1,6 @@
 import { clockTime, QUIET_HOURS } from '@overhead/shared/rules';
 import { router } from 'expo-router';
-import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
@@ -20,6 +20,14 @@ const OPTIONS: { key: keyof Settings; label: string; help: string }[] = [
     label: 'Quiet hours',
     help: `${QUIET_HOURS.map(clockTime).join(' to ')}, no cards while you sleep`,
   },
+];
+
+const PRIVACY_SITE = 'https://eyalhecht.github.io/overhead-privacy';
+
+const ABOUT: { label: string; open: () => void }[] = [
+  { label: 'Privacy policy', open: () => void Linking.openURL(`${PRIVACY_SITE}/`) },
+  { label: 'Legal notice', open: () => void Linking.openURL(`${PRIVACY_SITE}/impressum/`) },
+  { label: 'Credits and data sources', open: () => router.push('/credits') },
 ];
 
 export default function SettingsScreen() {
@@ -51,6 +59,14 @@ export default function SettingsScreen() {
             />
           </Card>
         ))}
+
+      <Card style={styles.about}>
+        {ABOUT.map(({ label, open }) => (
+          <Pressable key={label} accessibilityRole="link" onPress={open} style={styles.link}>
+            <Text style={styles.linkLabel}>{label}</Text>
+          </Pressable>
+        ))}
+      </Card>
 
       <View style={styles.spacer} />
       <Button label="Delete my data" variant="plain" onPress={confirmDeletion} />
@@ -89,6 +105,9 @@ const useStyles = themedStyles((colors) =>
     optionText: { flex: 1, gap: 2 },
     label: { color: colors.text, fontSize: 17, fontWeight: '600' },
     help: { color: colors.textSecondary, fontSize: 14 },
+    about: { paddingVertical: 4 },
+    link: { minHeight: 44, justifyContent: 'center' },
+    linkLabel: { color: colors.accent, fontSize: 17 },
     spacer: { flex: 1 },
     footnote: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
   }),

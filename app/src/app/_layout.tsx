@@ -14,6 +14,7 @@ export default function RootLayout() {
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="credits" options={{ presentation: 'modal' }} />
       </Stack>
     </SkyProvider>
   );
