@@ -1,6 +1,7 @@
 import type { GeoPoint } from '@overhead/shared';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { checkIn } from '@/services/checkIn';
 import { requestLocationAccess, toCoordinates } from '@/services/location';
 import { useSubscription } from './useSubscription';
@@ -12,12 +13,25 @@ const FOREGROUND_DISTANCE_M = 50;
 export function useLocation() {
   const [permission, setPermission] = useState<LocationPermission>('unknown');
   const [location, setLocation] = useState<GeoPoint>();
+  const [alwaysAllowed, setAlwaysAllowed] = useState<boolean>();
+
+  // Checked again whenever the app comes back, since the user may have changed it in iOS Settings.
+  const refreshPermissions = useCallback(
+    () =>
+      readPermissions().then((current) => {
+        setPermission(current.permission);
+        setAlwaysAllowed(current.alwaysAllowed);
+      }),
+    [],
+  );
 
   useEffect(() => {
-    void Location.getForegroundPermissionsAsync().then(({ granted, canAskAgain }) =>
-      setPermission(granted ? 'granted' : canAskAgain ? 'unknown' : 'denied'),
-    );
-  }, []);
+    void refreshPermissions();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshPermissions();
+    });
+    return () => subscription.remove();
+  }, [refreshPermissions]);
 
   const watchPosition = useCallback(
     () =>
@@ -35,9 +49,18 @@ export function useLocation() {
 
   const requestAccess = useCallback(async () => {
     const granted = await requestLocationAccess();
-    setPermission(granted ? 'granted' : 'denied');
+    await refreshPermissions();
     return granted;
-  }, []);
+  }, [refreshPermissions]);
 
-  return { location, permission, requestAccess };
+  return { location, permission, alwaysAllowed, requestAccess };
+}
+
+async function readPermissions(): Promise<{ permission: LocationPermission; alwaysAllowed: boolean }> {
+  const [foreground, background] = await Promise.all([
+    Location.getForegroundPermissionsAsync(),
+    Location.getBackgroundPermissionsAsync(),
+  ]);
+  const permission = foreground.granted ? 'granted' : foreground.canAskAgain ? 'unknown' : 'denied';
+  return { permission, alwaysAllowed: background.granted };
 }
