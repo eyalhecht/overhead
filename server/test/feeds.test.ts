@@ -231,15 +231,20 @@ describe('the sky above a user', () => {
     ]);
   });
 
-  it('only spends route lookups on planes that will pass over you', async () => {
+  it('looks routes up only for planes that go on a card, not ones merely on their way', async () => {
     const routes = knownRoutes();
     const sky = createSky(
-      fixedFeed([aircraft('CRUISE1', { altitudeFt: 37000 }), aircraft('ELY001', { distanceNm: 0.4 })]),
+      fixedFeed([
+        aircraft('CRUISE1', { altitudeFt: 37000 }),
+        aircraft('ELY001', { distanceNm: 0.4 }),
+        aircraft('FAR1', { distanceNm: 6, bearingDeg: 90, trackDeg: 270, groundSpeedKt: 200 }),
+      ]),
       routes,
     );
 
-    sky.planesAbove(BEN_GURION);
+    const planes = sky.planesAbove(BEN_GURION);
 
+    expect(planes.find(({ flight }) => flight === 'FAR1')).toMatchObject({ stage: 'inbound', route: null });
     expect(routes.asked).toEqual(['ELY001']);
   });
 

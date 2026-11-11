@@ -91,6 +91,31 @@ describe('watcher', () => {
     expect(sky.refreshedFor[0]?.map(({ lat }) => lat).sort()).toEqual([10, user.location.lat].sort());
   });
 
+  describe('which phones are watched', () => {
+    const silent = () =>
+      users.upsert(registerRequest({ deviceId: 'phone-2', startToken: undefined, lat: 10 }));
+
+    it('skips a phone that cannot get a card: no start token, no card open, app closed', async () => {
+      silent();
+      await watcher.tick();
+      expect(sky.refreshedFor[0]?.map(({ lat }) => lat)).toEqual([user.location.lat]);
+    });
+
+    it('watches it while its app is open, so the app can show the sky', async () => {
+      watcher.appOpened(silent());
+      await watcher.tick();
+      expect(sky.refreshedFor[0]).toHaveLength(2);
+    });
+
+    it('keeps watching a phone whose start token is gone while its card is still open', async () => {
+      sky.planes = [nearbyPlane('BAW1')];
+      await watcher.tick();
+      user.startToken = undefined;
+      await watcher.tick();
+      expect(sky.refreshedFor[1]).toHaveLength(1);
+    });
+  });
+
   it('keeps watching other phones while one phone waits on a slow push', async () => {
     users.upsert(registerRequest({ deviceId: 'phone-2', startToken: 'start-token-2', lat: 10 }));
     sky.planes = [nearbyPlane('BAW1')];

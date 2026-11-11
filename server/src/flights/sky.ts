@@ -1,4 +1,5 @@
 import type { GeoPoint, NearbyPlane, PassStage } from '@overhead/shared';
+import { isOnCard } from '@overhead/shared/rules';
 import { aircraftName } from './aircraft.js';
 import { airlineName } from './airlines.js';
 import { heardStage, passStage, type Aircraft } from './geometry.js';
@@ -36,7 +37,7 @@ export function createSky(positions: PositionSource, routes: RouteSource, noise?
         distanceNm: plane.distanceNm,
         bearingDeg: plane.bearingDeg,
         stage: plane.stage,
-        route: routes.routeFor(plane.flight),
+        route: isOnCard(plane) ? routes.routeFor(plane.flight) : null,
         ...(plane.heardDb !== undefined && { heardDb: plane.heardDb }),
       }));
     },

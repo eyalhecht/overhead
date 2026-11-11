@@ -27,6 +27,15 @@ describe('API', () => {
     await request(app).get('/sky?deviceId=phone-1').expect(401);
   });
 
+  it('turns away a phone that calls far more often than the app ever does', async () => {
+    let status = 0;
+    for (let call = 0; call < 61; call += 1) {
+      ({ status } = await authorized(request(app).get('/sky?deviceId=phone-1')));
+    }
+    expect(status).toBe(429);
+    await authorized(request(app).get('/sky?deviceId=phone-2')).expect(200);
+  });
+
   it('registers a phone', async () => {
     await authorized(request(app).post('/register')).send(registerRequest()).expect(204);
     expect(users.all()).toHaveLength(1);
