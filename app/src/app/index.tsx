@@ -15,7 +15,7 @@ export default function HomeScreen() {
   const styles = useStyles();
   const colors = useColors();
   const [onboarded, setOnboarded] = useState<boolean>();
-  const { permission, location, heading, planes, card, cardPlane } = useSky();
+  const { permission, alwaysAllowed, location, heading, planes, card, cardPlane } = useSky();
 
   useEffect(() => {
     void isOnboarded().then(setOnboarded);
@@ -36,6 +36,16 @@ export default function HomeScreen() {
           </Pressable>
         </Link>
       </View>
+
+      {permission === 'granted' && alwaysAllowed === false && (
+        <Card style={styles.hint}>
+          <Text style={styles.hintText}>
+            Cards come only while Overhead is open. To get them on your Lock Screen anytime, set its location
+            access to Always.
+          </Text>
+          <Button label="Open Settings" variant="plain" onPress={() => void Linking.openSettings()} />
+        </Card>
+      )}
 
       {card ? (
         <FlightCard card={card} plane={cardPlane} heading={heading} />
@@ -84,6 +94,8 @@ const useStyles = themedStyles((colors) =>
     },
     map: { paddingHorizontal: 6, paddingVertical: 14 },
     message: { alignItems: 'center', gap: 8, paddingVertical: 24 },
+    hint: { gap: 4, paddingBottom: 6 },
+    hintText: { color: colors.textSecondary, fontSize: 15, lineHeight: 21 },
     messageIcon: {
       width: 56,
       height: 56,

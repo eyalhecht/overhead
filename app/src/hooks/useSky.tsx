@@ -10,6 +10,7 @@ import { useSubscription } from './useSubscription';
 interface Sky {
   location?: GeoPoint;
   permission: LocationPermission;
+  alwaysAllowed?: boolean;
   requestAccess: () => Promise<boolean>;
   heading: number;
   planes: NearbyPlane[];
@@ -21,7 +22,7 @@ const SkyContext = createContext<Sky | null>(null);
 const EMPTY_SKY: SkySnapshot = { planes: [], card: null };
 
 export function SkyProvider({ children }: PropsWithChildren) {
-  const { location, permission, requestAccess } = useLocation();
+  const { location, permission, alwaysAllowed, requestAccess } = useLocation();
   const [heading, setHeading] = useState(0);
 
   const watchHeading = useCallback(
@@ -43,13 +44,14 @@ export function SkyProvider({ children }: PropsWithChildren) {
     () => ({
       location,
       permission,
+      alwaysAllowed,
       requestAccess,
       heading,
       planes,
       card,
       cardPlane: planes.find((plane) => plane.flight === card?.flight),
     }),
-    [location, permission, requestAccess, heading, planes, card],
+    [location, permission, alwaysAllowed, requestAccess, heading, planes, card],
   );
 
   return <SkyContext.Provider value={sky}>{children}</SkyContext.Provider>;
