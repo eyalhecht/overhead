@@ -19,20 +19,14 @@ How data will flow:
 4. **Route directory** answers "where is this flight going" from the Virtual Radar Server standing data, downloaded once a day and held in memory. It is asked only when a plane goes on a card. Unknown callsigns return no route, as today.
 5. **Policy** (unchanged, pure) decides start, update and end. **Watcher** runs the tick: refresh the snapshot once, then step each phone that can get a card.
 
-Server layout after the work (`server/src`):
+Where it lives: the existing `server/src/flights/` folder, by rewriting three files in place. No new folders and no new files.
 
-- `feeds/feed.ts` - the `Feed` interface and the shared readsb parser
-- `feeds/flyItaly.ts`, `feeds/adsbLol.ts` - one adapter each
-- `sky/regions.ts` - which boxes to fetch, from the watched phones
-- `sky/snapshot.ts` - the sky snapshot (fetch per region, fallback, source per region)
-- `sky/passes.ts` - planes near a point with their stage (replaces `flights/sky.ts`)
-- `sky/geometry.ts`, `sky/noise.ts` - moved unchanged
-- `routes/directory.ts` - the route directory, plus `routes/standingData.ts` for the daily download and parsing
-- `names/airlines.ts`, `names/aircraft.ts`, `names/airports.json` - display names, unchanged
-- `activity/policy.ts`, `activity/watcher.ts` - as today, watcher simplified
-- `users.ts`, `api/`, `push/`, `config.ts`, `index.ts` - as today, with the changes below
+- `positions.ts` - rewritten: the two feed adapters (today's `FEEDS` list plus FlyItalyADSB), the shared readsb parser, the regions to fetch and the sky snapshot. Everything about where planes are stays in one file.
+- `routes.ts` - rewritten: the route directory (daily download of the standing data, lookups from memory), replacing the Flightradar24 and adsbdb code.
+- `sky.ts` - simplified: reads the snapshot instead of calling a feed, so it becomes synchronous.
+- Everything else (`geometry.ts`, `noise.ts`, `airlines.ts`, `aircraft.ts`, `activity/`, `users.ts`, `api/`, `push/`) stays where it is, changed only as the phases below say.
 
-Removed: `flights/positions.ts` (per-area polling and its rate limiter), `flights/routes.ts` (Flightradar24 and adsbdb), `FR24_TOKEN`, the adsb.fi URL, and every test and doc line about them.
+Removed: per-area polling and its rate limiter, the Flightradar24 and adsbdb lookups, `FR24_TOKEN`, the adsb.fi URL, and every test and doc line about them.
 
 New glossary terms in CONTEXT.md: **Feed**, **Region**, **Sky snapshot**, **Route directory**, **Credit** (the licence line a source requires).
 
@@ -60,12 +54,12 @@ Done when: a short results note in `docs/research/` and your decision.
 
 Built in small, reviewed steps, each with its own tests:
 
-1. **Feed interface and adapters.** Move the readsb parsing out of `positions.ts` into `feeds/feed.ts`. Write the two adapters with the credits they require (FlyItalyADSB: CC BY-SA 4.0 with link; adsb.lol: ODbL with link). Tests with captured responses, as today.
-2. **Regions.** From the watched phones' locations, the set of boxes to fetch each tick, merged where they overlap, sized to what the main feed allows (from the Phase 0 answer). Pure function, unit-tested.
-3. **Sky snapshot.** One fetch per region per tick, main feed first and the backup on failure, never mixed. Positions stay in memory only and are never written to disk or the repo (CC BY-SA share-alike). Tests: fallback, no merging, credit per region, a failed region keeps its last snapshot for one tick.
-4. **Passes.** `sky/passes.ts` reads the snapshot instead of calling a feed, so it becomes synchronous and simpler. The existing feed and sky tests move here.
-5. **Route directory.** Daily download of the standing data (CC0), parsed into a map, swapped atomically, kept on failure. Asked only for planes on a card. Tests with a small fixture.
-6. **Switch over** in `index.ts`, then delete `positions.ts`, `routes.ts`, the FR24 config and their tests in the same change.
+1. **Feeds** in `positions.ts`: FlyItalyADSB joins the existing feed list, adsb.fi leaves it, and each feed carries the credit it requires (FlyItalyADSB: CC BY-SA 4.0 with link; adsb.lol: ODbL with link). Tests with captured responses, as today.
+2. **Regions**: from the watched phones' locations, the boxes to fetch each tick, merged where they overlap, sized to what the main feed allows (from the Phase 0 answer). A pure function in `positions.ts`, unit-tested.
+3. **Sky snapshot**, also in `positions.ts`: one fetch per region per tick, main feed first and the backup on failure, never mixed. Positions stay in memory only, never on disk or in the repo (CC BY-SA share-alike). Tests: fallback, no merging, credit per region, a failed region keeps its last snapshot for one tick.
+4. **`sky.ts`** reads the snapshot instead of calling a feed. The existing feed and sky tests are updated, not duplicated.
+5. **Route directory** in `routes.ts`: daily download of the standing data (CC0), parsed into a map, swapped at once, kept on failure. Asked only for planes on a card. Tests with a small fixture.
+6. **Switch over** in `index.ts`, and delete the Flightradar24, adsbdb and per-area code and their tests in the same change.
 
 Checks: all tests green, the 10 Nov evening test unchanged, a replay of 5 Nov showing the same cards and stages as today.
 
@@ -111,7 +105,7 @@ Done when: Frankfurt serves all phones, logs clean for a day.
 - PRIVACY.md and the public policy page: recipients now only Google (EU region) and Apple; feeds get no user data; routes are looked up by callsign only; lawful basis; the Berlin data protection authority; deletion in the app; California and Israel lines.
 - Impressum page (your name, home address, email), linked from the app and used as the App Store support URL.
 - README: data sources, limits, and the new architecture section.
-- `server/src/names/OPENFLIGHTS-LICENSE` (or a note in README) so the airline data keeps its ODbL licence in the repo.
+- A licence note for `server/src/flights/airlines.json` in the README, so the airline data keeps its ODbL licence in the repo.
 
 ## Phase 8 - App Store submission (founder, guided)
 
