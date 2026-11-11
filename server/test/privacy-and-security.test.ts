@@ -1,9 +1,10 @@
+import { gzipSync } from 'node:zlib';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createWatcher, type Watcher } from '../src/activity/watcher.js';
 import { createApp } from '../src/api/app.js';
-import { createPositionSource } from '../src/flights/positions.js';
-import { createRouteSource } from '../src/flights/routes.js';
+import { adsbLol, createPositionSource } from '../src/flights/positions.js';
+import { createRouteDirectory } from '../src/flights/routes.js';
 import { createSky } from '../src/flights/sky.js';
 import { createUserStore } from '../src/users.js';
 import { FakePush, registerRequest } from './fakes.js';
@@ -27,10 +28,9 @@ const PLANE_OVERHEAD = {
   track: 270,
   lat: 32.069,
   lon: 34.7799,
-  dst: 0.3,
-  dir: 90,
 };
-const AREA_AROUND_PHONE = /\/32\.05\/(lon\/)?34\.75\//;
+const FIXED_TILE = 'https://api.adsb.lol/v2/point/33/35/94';
+const ROUTE_LIST = 'https://vrs-standing-data.adsb.lol/routes.csv.gz';
 
 interface SentRequest {
   url: string;
@@ -40,7 +40,6 @@ interface SentRequest {
 describe('privacy and security', () => {
   let sent: SentRequest[];
   let feedDown: boolean;
-  let routesDown: boolean;
   let logged: string[];
   let push: FakePush;
   let watcher: Watcher;
@@ -50,18 +49,17 @@ describe('privacy and security', () => {
   const fetchFn: typeof fetch = async (input, init) => {
     const url = String(input);
     sent.push({ url, headers: JSON.stringify(init?.headers ?? {}) });
-    if (url.includes('fr24api')) {
-      if (routesDown) return new Response('{}', { status: 500 });
-      return new Response(JSON.stringify({ data: [{ orig_iata: 'LCA', dest_iata: 'TLV' }] }));
-    }
+    if (url === ROUTE_LIST)
+      return new Response(
+        gzipSync('Callsign,Code,Number,AirlineCode,AirportCodes\nELY001,ELY,1,ELY,LCLK-LLBG'),
+      );
     if (feedDown) throw new Error('connect ECONNREFUSED');
     return new Response(JSON.stringify({ ac: [PLANE_OVERHEAD] }));
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     sent = [];
     feedDown = false;
-    routesDown = false;
     logged = [];
     for (const level of ['log', 'warn', 'error'] as const) {
       vi.spyOn(console, level).mockImplementation((...args: unknown[]) => {
@@ -72,8 +70,10 @@ describe('privacy and security', () => {
     }
     const users = createUserStore();
     clock = Date.now();
-    const positions = createPositionSource(fetchFn, { now: () => clock });
-    const sky = createSky(positions, createRouteSource({ fr24Token: 'fr24', fetchFn }));
+    const positions = createPositionSource([adsbLol()], { fetchFn, now: () => clock });
+    const routes = createRouteDirectory(fetchFn);
+    await routes.load();
+    const sky = createSky(positions, routes);
     push = new FakePush();
     watcher = createWatcher({ users, sky, push, now: () => clock });
     app = createApp({ appKey: APP_KEY, users, watcher });
@@ -102,7 +102,6 @@ describe('privacy and security', () => {
     feedDown = true;
     await nextTick();
     feedDown = false;
-    routesDown = true;
     push.result = 'failed';
     await nextTick();
     push.result = 'token-invalid';
@@ -118,20 +117,20 @@ describe('privacy and security', () => {
     }
   });
 
-  it('gives the flight-position feeds only the 10 km area around the phone, never who is asking', async () => {
+  it('gives the flight-position feed only a fixed map tile, never the phone location or who is asking', async () => {
     await aWholeDay();
 
-    const feeds = sent.filter(({ url }) => url.includes('adsb'));
+    const feeds = sent.filter(({ url }) => url.includes('/v2/point/'));
     expect(feeds.length).toBeGreaterThan(0);
     for (const { url, headers } of feeds) {
-      expect(url).toMatch(AREA_AROUND_PHONE);
-      for (const secret of [PHONE.deviceId, PHONE.startToken, CARD_TOKEN]) {
+      expect(url).toBe(FIXED_TILE);
+      for (const secret of SECRETS) {
         expect(url + headers).not.toContain(secret);
       }
     }
   });
 
-  it('rounds a precise location on the server too, whatever the phone sends', async () => {
+  it('asks the feed for the same tile however precise the phone location is', async () => {
     await request(app)
       .post('/register')
       .set('x-app-key', APP_KEY)
@@ -139,31 +138,25 @@ describe('privacy and security', () => {
       .expect(204);
     await nextTick();
 
-    const feeds = sent.filter(({ url }) => url.includes('adsb'));
-    expect(feeds.length).toBeGreaterThan(0);
-    for (const { url } of feeds) {
-      expect(url).toMatch(AREA_AROUND_PHONE);
-    }
+    const feeds = sent.filter(({ url }) => url.includes('/v2/point/'));
+    expect(feeds.map(({ url }) => url)).toEqual([FIXED_TILE]);
   });
 
-  it('gives Flightradar24 only flight numbers, never a location or who is asking', async () => {
+  it('downloads the route list without anything about the phone, and looks routes up locally', async () => {
     await aWholeDay();
 
-    const lookups = sent.filter(({ url }) => url.includes('fr24api'));
-    expect(lookups.length).toBeGreaterThan(0);
-    for (const { url, headers } of lookups) {
-      expect(new URL(url).searchParams.get('callsigns')).toBe('ELY001');
-      for (const secret of SECRETS) {
-        expect(url + headers).not.toContain(secret);
-      }
+    const downloads = sent.filter(({ url }) => url === ROUTE_LIST);
+    expect(downloads).toHaveLength(1);
+    for (const { headers } of downloads) {
+      for (const secret of SECRETS) expect(headers).not.toContain(secret);
     }
   });
 
-  it('talks to no service besides the two flight feeds and Flightradar24', async () => {
+  it('talks to no service besides the flight feed and the route list', async () => {
     await aWholeDay();
 
     const hosts = new Set(sent.map(({ url }) => new URL(url).host));
-    expect([...hosts].sort()).toEqual(['api.adsb.lol', 'fr24api.flightradar24.com', 'opendata.adsb.fi']);
+    expect([...hosts].sort()).toEqual(['api.adsb.lol', 'vrs-standing-data.adsb.lol']);
   });
 
   it('answers an unexpected failure without any internal detail', async () => {

@@ -79,23 +79,38 @@ describe('watcher', () => {
     expect(push.sent.at(-1)).toMatchObject({ event: 'end', token: 'late-card', props: { flight: 'BAW1' } });
   });
 
-  it('keeps watching other phones while one phone waits on a slow feed', async () => {
+  it('refreshes the sky once per tick for every phone, leaving out phones in quiet hours', async () => {
     users.upsert(registerRequest({ deviceId: 'phone-2', startToken: 'start-token-2', lat: 10 }));
-    let releaseSlowFeed = () => {};
-    sky.planesAt = ({ lat }) => (lat === 10 ? [nearbyPlane('BAW1')] : []);
-    const planesAbove = sky.planesAbove.bind(sky);
-    sky.planesAbove = (point) =>
-      point.lat === 10 ? planesAbove(point) : new Promise((resolve) => (releaseSlowFeed = () => resolve([])));
+    users.upsert(
+      registerRequest({ deviceId: 'phone-3', startToken: 'start-token-3', lat: 20, quietHours: [0, 1439] }),
+    );
+
+    await watcher.tick();
+
+    expect(sky.refreshedFor).toHaveLength(1);
+    expect(sky.refreshedFor[0]?.map(({ lat }) => lat).sort()).toEqual([10, user.location.lat].sort());
+  });
+
+  it('keeps watching other phones while one phone waits on a slow push', async () => {
+    users.upsert(registerRequest({ deviceId: 'phone-2', startToken: 'start-token-2', lat: 10 }));
+    sky.planes = [nearbyPlane('BAW1')];
+    let releaseSlowPush = () => {};
+    const send = push.send.bind(push);
+    push.send = (token, event, props) =>
+      token === 'start-token'
+        ? new Promise((resolve) => (releaseSlowPush = () => resolve('delivered')))
+        : send(token, event, props);
 
     const tick = watcher.tick();
     await vi.waitFor(() => expect(push.sent.map(({ token }) => token)).toEqual(['start-token-2']));
-    releaseSlowFeed();
+    releaseSlowPush();
     await tick;
   });
 
   it('finishes the tick in progress before stopping', async () => {
     let releaseFeed = () => {};
-    sky.planesAbove = () => new Promise((resolve) => (releaseFeed = () => resolve([nearbyPlane('BAW1')])));
+    sky.planes = [nearbyPlane('BAW1')];
+    sky.refresh = () => new Promise((resolve) => (releaseFeed = () => resolve()));
     vi.useFakeTimers();
     watcher.start();
     await vi.advanceTimersByTimeAsync(5000);

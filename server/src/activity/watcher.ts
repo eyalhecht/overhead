@@ -39,6 +39,7 @@ export function createWatcher({
 
   async function tick(): Promise<void> {
     const waiting = users.all();
+    await sky.refresh(waiting.filter((user) => !isQuietTime(user, now())).map(spotOf));
     const lane = async () => {
       for (let user = waiting.shift(); user; user = waiting.shift()) await watchSafely(user);
     };
@@ -54,9 +55,7 @@ export function createWatcher({
   }
 
   async function watch(user: User): Promise<void> {
-    const moved = demoLocation && (!demoDevice || user.deviceId.startsWith(demoDevice));
-    const spot = moved ? demoLocation : user.location;
-    const planes = isQuietTime(user, now()) ? [] : await planesAbove(user, spot);
+    const planes = isQuietTime(user, now()) ? [] : planesAbove(user, spotOf(user));
     planesSeen.set(user, planes);
     const { action, state } = nextStep(user.activity, {
       planes,
@@ -90,11 +89,18 @@ export function createWatcher({
     }
   }
 
-  function planesAbove(user: User, point: GeoPoint): Promise<NearbyPlane[]> {
-    return sky.planesAbove(point).catch((error: Error): NearbyPlane[] => {
-      console.warn(`${userLabel(user)} cannot see the sky: ${error.message}`);
+  function spotOf(user: User): GeoPoint {
+    const moved = demoLocation && (!demoDevice || user.deviceId.startsWith(demoDevice));
+    return moved ? demoLocation : user.location;
+  }
+
+  function planesAbove(user: User, point: GeoPoint): NearbyPlane[] {
+    try {
+      return sky.planesAbove(point);
+    } catch (error) {
+      console.warn(`${userLabel(user)} cannot see the sky: ${(error as Error).message}`);
       return [];
-    });
+    }
   }
 
   async function reportCardTokens(user: User, tokens: string[]): Promise<void> {
