@@ -15,7 +15,8 @@ export interface Sky {
   planesAbove(point: GeoPoint): NearbyPlane[];
 }
 
-type PassingAircraft = Aircraft & { stage: PassStage; heardDb?: number };
+type LocatedAircraft = Aircraft & GeoPoint;
+type PassingAircraft = LocatedAircraft & { stage: PassStage; heardDb?: number };
 
 export function createSky(positions: PositionSource, routes: RouteSource, noise?: NoiseModel): Sky {
   return {
@@ -37,7 +38,7 @@ export function createSky(positions: PositionSource, routes: RouteSource, noise?
         distanceNm: plane.distanceNm,
         bearingDeg: plane.bearingDeg,
         stage: plane.stage,
-        route: isOnCard(plane) ? routes.routeFor(plane.flight) : null,
+        route: isOnCard(plane) ? routes.routeFor(plane.flight, plane) : null,
         ...(plane.heardDb !== undefined && { heardDb: plane.heardDb }),
       }));
     },
@@ -45,9 +46,9 @@ export function createSky(positions: PositionSource, routes: RouteSource, noise?
 }
 
 function withStage(
-  plane: Aircraft,
+  plane: LocatedAircraft,
   noise?: NoiseModel,
-): Aircraft & { stage: PassStage | null; heardDb?: number } {
+): LocatedAircraft & { stage: PassStage | null; heardDb?: number } {
   const stage = passStage(plane);
   if (stage || !noise) return { ...plane, stage };
   const heardDb = noise.peakDb(plane);

@@ -1,6 +1,6 @@
 import { gzipSync } from 'node:zlib';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRouteDirectory, parseStandingData } from '../src/flights/routes.js';
+import { createRouteDirectory, legFor, parseStandingData } from '../src/flights/routes.js';
 
 const STANDING_DATA = [
   'Callsign,Code,Number,AirlineCode,AirportCodes',
@@ -59,6 +59,22 @@ describe('route directory', () => {
     expect(routes.routeFor('POE217')).toBeNull();
   });
 
+  it('shows the leg a flight with stopovers is clearly flying, from the plane it is asked about', async () => {
+    const routes = await loaded(`${STANDING_DATA}
+SWA2515,SWA,2515,SWA,KSJC-KLAX-KMDW-KBWI`);
+    const nearLax = { lat: 33.95, lon: -118.34 };
+
+    expect(routes.routeFor('SWA2515', { ...nearLax, verticalRateFpm: -800 })).toMatchObject({
+      from: 'SJC',
+      to: 'LAX',
+    });
+    expect(routes.routeFor('SWA2515', { ...nearLax, verticalRateFpm: 1500 })).toMatchObject({
+      from: 'LAX',
+      to: 'MDW',
+    });
+    expect(routes.routeFor('SWA2515')).toBeNull();
+  });
+
   it('shows the airport code when it does not know the city', async () => {
     const routes = await loaded();
     expect(routes.routeFor('XYZ1')).toMatchObject({ from: 'ZZZZ', fromCity: 'ZZZZ', to: 'TLV' });
@@ -93,5 +109,28 @@ describe('parseStandingData', () => {
       ['XYZ1', 'ZZZZ-LLBG'],
       ['EVA6', 'RCTP-KLAX'],
     ]);
+  });
+});
+
+describe('legFor', () => {
+  const nearJfk = { lat: 40.64, lon: -73.78 };
+
+  it('keeps a direct route whatever the plane is doing', () => {
+    expect(legFor(['OMAA', 'LLBG'])).toEqual(['OMAA', 'LLBG']);
+    expect(legFor(['OMAA', 'LLBG'], { ...nearJfk, verticalRateFpm: 0 })).toEqual(['OMAA', 'LLBG']);
+  });
+
+  it('tells the two legs of an out-and-back flight apart by climb or descent', () => {
+    const stops = ['KJFK', 'TJSJ', 'KJFK'];
+    expect(legFor(stops, { ...nearJfk, verticalRateFpm: 2000 })).toEqual(['KJFK', 'TJSJ']);
+    expect(legFor(stops, { ...nearJfk, verticalRateFpm: -900 })).toEqual(['TJSJ', 'KJFK']);
+  });
+
+  it('shows no leg when the plane is level, far from every stop, or near two of them', () => {
+    const stops = ['KSJC', 'KLAX', 'KMDW', 'KBWI'];
+    expect(legFor(stops, { lat: 33.95, lon: -118.34, verticalRateFpm: 100 })).toBeNull();
+    expect(legFor(stops, { lat: 33.95, lon: -118.34 })).toBeNull();
+    expect(legFor(stops, { lat: 32.0, lon: 34.8, verticalRateFpm: -900 })).toBeNull();
+    expect(legFor(['KORD', 'KEWR', 'KJFK'], { lat: 40.75, lon: -73.98, verticalRateFpm: -900 })).toBeNull();
   });
 });
