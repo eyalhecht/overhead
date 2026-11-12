@@ -1,14 +1,11 @@
 # App Store listing and review notes (1.2.1)
 
-Draft for App Store Connect. Field limits checked. Avoids pricing words such as "Free" (Guideline 2.3.7) and competitor or trademark names.
+What was submitted to App Review on 12 November 2026 (version 1.2.1, build 5, automatic release on approval). Field limits checked. Avoids pricing words such as "Free" (Guideline 2.3.7) and competitor or trademark names.
 
 ## Name and subtitle
 
-- **Name:** Overhead
-- **Subtitle (30 max), pick one:**
-  - A. "Where that plane is going" (25). Recommended: it is the exact question people ask when a plane flies over.
-  - B. "The plane above you, live" (25). Says what you see.
-  - C. "Lock Screen flight spotter" (26). Says where it lives. Best for search, weakest hook.
+- **Name:** Overhead: Plane Tracker (23). "Overhead" alone is taken on the App Store; the name under the icon on the phone stays "Overhead".
+- **Subtitle:** The plane above you, live (25).
 
 ## Promotional text (170 max)
 
@@ -47,7 +44,9 @@ plane,flight,tracker,airplane,aircraft,live activity,lock screen,airport,spottin
 - **Category:** Travel (primary), Utilities (secondary). Not Navigation, which conflicts with the "not for navigation" disclaimer.
 - **Copyright:** 2026 Eyal Hecht
 - **Price:** 0 (set under Pricing, never written in metadata)
+- **Availability:** 174 countries, all except China mainland (needs an ICP filing). Not offered on Apple silicon Macs or Apple Vision Pro: no Lock Screen or Live Activities there.
 - **EU Digital Services Act:** declare "not a trader" (an individual with a free app and no income from it). Becoming a trader shows your address and phone on the EU product page; revisit before monetizing (IDEA-77).
+- **Content Rights:** yes, the app shows third-party content (flight positions, routes, airport and noise data) and has the rights to it; every source is credited in Settings > Credits and data sources.
 - **Age rating:** answer "None" or "No" to every content question. No unrestricted web access (links open in Safari). No user-generated content, messaging, ads, gambling, or medical content. Result: 4+.
 
 ## App Privacy (nutrition label)
