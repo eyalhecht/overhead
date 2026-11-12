@@ -16,7 +16,7 @@ export interface Tile {
 
 export interface PositionSource {
   refresh(points: GeoPoint[]): Promise<void>;
-  aircraftNear(point: GeoPoint, radiusNm: number): Aircraft[];
+  aircraftNear(point: GeoPoint, radiusNm: number): (Aircraft & GeoPoint)[];
 }
 
 type LocatedAircraft = Omit<Aircraft, 'distanceNm' | 'bearingDeg'> & GeoPoint;

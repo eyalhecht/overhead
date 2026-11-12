@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { Route } from '@overhead/shared';
+import type { GeoPoint, Route } from '@overhead/shared';
 import { describe, expect, it, vi } from 'vitest';
 import type { Aircraft } from '../src/flights/geometry.js';
 import {
@@ -175,9 +175,10 @@ describe('tiles', () => {
 });
 
 describe('the sky above a user', () => {
-  const aircraft = (flight: string, overrides: Partial<Aircraft>): Aircraft => ({
+  const aircraft = (flight: string, overrides: Partial<Aircraft & GeoPoint>): Aircraft & GeoPoint => ({
     id: flight.toLowerCase(),
     flight,
+    ...BEN_GURION,
     altitudeFt: 3000,
     groundSpeedKt: 150,
     trackDeg: 300,
@@ -186,7 +187,7 @@ describe('the sky above a user', () => {
     ...overrides,
   });
 
-  const fixedFeed = (list: Aircraft[]): PositionSource => ({
+  const fixedFeed = (list: (Aircraft & GeoPoint)[]): PositionSource => ({
     refresh: async () => {},
     aircraftNear: () => list,
   });
