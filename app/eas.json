@@ -12,18 +12,22 @@
       "autoIncrement": true,
       "environment": "production",
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://34-71-157-28.sslip.io"
+        "EXPO_PUBLIC_SERVER_URL": "https://34-40-2-95.sslip.io"
       }
     },
     "preview": {
       "distribution": "internal",
       "environment": "preview",
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://34-71-157-28.sslip.io"
+        "EXPO_PUBLIC_SERVER_URL": "https://34-40-2-95.sslip.io"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6831235279"
+      }
+    }
   }
 }

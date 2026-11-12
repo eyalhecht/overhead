@@ -2,7 +2,7 @@
   "expo": {
     "name": "Overhead",
     "slug": "overhead",
-    "version": "1.1.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -74,6 +74,9 @@
         {
           "locationWhenInUsePermission": "Overhead uses your location to find planes above you.",
           "locationAlwaysAndWhenInUsePermission": "Overhead checks for planes above you even when the app is closed, using only rough, low-power location.",
+          "locationAlwaysPermission": "Overhead checks for planes above you even when the app is closed, using only rough, low-power location.",
+          "motionUsagePermission": false,
+          "locationFullAccuracyPermission": false,
           "isIosBackgroundLocationEnabled": true
         }
       ],
