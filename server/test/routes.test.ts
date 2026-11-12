@@ -8,6 +8,7 @@ const STANDING_DATA = [
   'BAW982,BAW,982,BAW,EGLL-EDDB',
   'POE217,POE,217,POE,CYQT-CYTZ-CYOW-CYSJ',
   'XYZ1,XYZ,1,XYZ,ZZZZ-LLBG',
+  'EVA6,EVA,6,EVA,RCTP-KLAX',
 ].join('\r\n');
 
 const download = (csv: string, status = 200) => new Response(gzipSync(csv), { status });
@@ -45,6 +46,11 @@ describe('route directory', () => {
     routes.routeFor('BAW982');
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(String(fetchFn.mock.calls[0]?.[0])).toBe('https://vrs-standing-data.adsb.lol/routes.csv.gz');
+  });
+
+  it('finds a flight broadcast with a zero-padded number', async () => {
+    const routes = await loaded();
+    expect(routes.routeFor('EVA006')).toMatchObject({ from: 'TPE', fromCity: 'Taoyuan', to: 'LAX' });
   });
 
   it('shows no route for a flight it does not know, or one with stopovers, rather than a wrong one', async () => {
@@ -85,6 +91,7 @@ describe('parseStandingData', () => {
       ['BAW982', 'EGLL-EDDB'],
       ['POE217', 'CYQT-CYTZ-CYOW-CYSJ'],
       ['XYZ1', 'ZZZZ-LLBG'],
+      ['EVA6', 'RCTP-KLAX'],
     ]);
   });
 });
