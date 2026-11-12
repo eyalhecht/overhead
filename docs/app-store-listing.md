@@ -47,6 +47,7 @@ plane,flight,tracker,airplane,aircraft,live activity,lock screen,airport,spottin
 - **Category:** Travel (primary), Utilities (secondary). Not Navigation, which conflicts with the "not for navigation" disclaimer.
 - **Copyright:** 2026 Eyal Hecht
 - **Price:** 0 (set under Pricing, never written in metadata)
+- **EU Digital Services Act:** declare "not a trader" (an individual with a free app and no income from it). Becoming a trader shows your address and phone on the EU product page; revisit before monetizing (IDEA-77).
 - **Age rating:** answer "None" or "No" to every content question. No unrestricted web access (links open in Safari). No user-generated content, messaging, ads, gambling, or medical content. Result: 4+.
 
 ## App Privacy (nutrition label)
