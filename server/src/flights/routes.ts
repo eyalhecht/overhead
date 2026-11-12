@@ -39,7 +39,8 @@ export function createRouteDirectory(fetchFn: typeof fetch = fetch): RouteDirect
       }
     },
     routeFor(flight) {
-      const stops = routes.get(flight)?.split('-');
+      // The standing data writes flight numbers without the leading zeros some airlines broadcast (EVA006 is EVA6).
+      const stops = routes.get(flight.replace(/^([A-Z]{3})0+(?=\d)/, '$1'))?.split('-');
       // A flight with stopovers could be on any leg, so it shows no route rather than a wrong one.
       const route = stops?.length === 2 ? routeBetween(stops[0]!, stops[1]!) : null;
       asked.add(flight);
