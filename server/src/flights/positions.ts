@@ -33,6 +33,7 @@ const TILE_MARGIN_NM = 15;
 const NM_PER_DEGREE = 60;
 const KM_PER_NM = 1.852;
 const FEED_TIMEOUT_MS = 4000;
+const MAX_POSITION_AGE_S = 15;
 
 export function adsbLol(): Feed {
   return {
@@ -133,6 +134,8 @@ const ReadsbAircraftSchema = z.object({
   track: z.number().default(0),
   lat: z.number(),
   lon: z.number(),
+  seen: z.number().optional(),
+  seen_pos: z.number().optional(),
 });
 
 const ReadsbResponseSchema = z.object({ ac: z.array(z.unknown()).default([]) });
@@ -141,7 +144,9 @@ export function parseReadsbResponse(body: unknown): LocatedAircraft[] {
   return ReadsbResponseSchema.parse(body).ac.flatMap((entry) => {
     const parsed = ReadsbAircraftSchema.safeParse(entry);
     if (!parsed.success) return [];
-    const { hex, flight, t, alt_baro, baro_rate, gs, track, lat, lon } = parsed.data;
+    const { hex, flight, t, alt_baro, baro_rate, gs, track, lat, lon, seen, seen_pos } = parsed.data;
+    // Some feeds report a plane on the ground as altitude 0 with its last flying speed.
+    if (alt_baro === 0 || (seen_pos ?? seen ?? 0) > MAX_POSITION_AGE_S) return [];
     return [
       {
         id: hex,
