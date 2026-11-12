@@ -32,8 +32,8 @@ export default function LocationScreen() {
   const colors = useColors();
   const { requestAccess } = useSky();
 
-  const finish = async (askForLocation: boolean) => {
-    if (askForLocation) await requestAccess();
+  const finish = async () => {
+    await requestAccess();
     await completeOnboarding();
     router.replace('/');
   };
@@ -43,7 +43,7 @@ export default function LocationScreen() {
       <View style={styles.top} />
       <Intro
         title="Overhead needs your location"
-        body="To know when a plane is above you, even while the app is closed. Choose “Always Allow” when iOS asks."
+        body="To know when a plane is above you, even while the app is closed."
       />
       {PROMISES.map(({ icon, title, text }) => (
         <Card key={title} style={styles.promise}>
@@ -57,8 +57,7 @@ export default function LocationScreen() {
         </Card>
       ))}
       <View style={styles.spacer} />
-      <Button label="Allow location" onPress={() => void finish(true)} />
-      <Button label="Not now" variant="plain" onPress={() => void finish(false)} />
+      <Button label="Continue" onPress={() => void finish()} />
     </Screen>
   );
 }
