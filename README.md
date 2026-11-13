@@ -103,4 +103,4 @@ Known and accepted for a beta of a few users:
 
 ## Data
 
-Positions from [adsb.fi](https://adsb.fi) with [adsb.lol](https://adsb.lol) as fallback, routes from the [Flightradar24 API](https://fr24api.flightradar24.com), city names from [OurAirports](https://ourairports.com/data/) (public domain), airline names from [OpenFlights](https://openflights.org/data.php) (Open Database License).
+Positions from [adsb.lol](https://adsb.lol) (Open Database License) with [FlyItalyADSB](https://flyitalyadsb.com) (CC BY-SA 4.0) as fallback, never mixed. Routes and missing airline names from the [Virtual Radar Server standing data](https://github.com/vradarserver/standing-data) (CC0), airline names from [OpenFlights](https://openflights.org/data.php) (Open Database License), airport cities and positions from [OurAirports](https://ourairports.com/data/) (public domain).

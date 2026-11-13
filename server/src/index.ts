@@ -20,7 +20,9 @@ const users = createUserStore({
 });
 const noise = loadNoiseModel(fileURLToPath(new URL('../data/anp', import.meta.url)));
 if (!noise) console.warn('Noise data missing in server/data/anp, so only planes passing close get cards');
-const feeds = config.flyItalyApiKey ? [flyItalyAdsb(config.flyItalyApiKey), adsbLol()] : [adsbLol()];
+// adsb.lol sees low planes near airports more fully and freshly; FlyItalyADSB answers when it does not.
+// shortcut: adsb.lol requests are spaced 1 s apart, fine for a few tiles; past that, use FlyItalyADSB Pro's whole-world feed.
+const feeds = config.flyItalyApiKey ? [adsbLol(), flyItalyAdsb(config.flyItalyApiKey)] : [adsbLol()];
 const routes = createRouteDirectory();
 void routes.load();
 setInterval(() => void routes.load(), ROUTE_RELOAD_MS).unref();
