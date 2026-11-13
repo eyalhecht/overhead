@@ -21,6 +21,13 @@ describe('airlineName', () => {
     expect(airlineName('ELY386')).toBe('El Al Israel Airlines');
   });
 
+  it('names newer airlines and airline subsidiaries', () => {
+    expect(airlineName('WMT5012')).toBe('Wizz Air Malta');
+    expect(airlineName('WUK4320')).toBe('Wizz Air UK');
+    expect(airlineName('HFA405')).toBe('airHaifa');
+    expect(airlineName('CHZ674')).toBe('Challenge Air Cargo');
+  });
+
   it('gives no airline for private aircraft that fly under their registration', () => {
     expect(airlineName('4XHSC')).toBeUndefined();
     expect(airlineName('N')).toBeUndefined();
