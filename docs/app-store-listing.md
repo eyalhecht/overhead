@@ -71,7 +71,7 @@ How to see it:
 
 Quiet hours (22:00 to 07:00 device local time) are on by default, and no cards start during them. If you test in that window, turn Quiet hours off in Settings.
 
-Why location "Always": the core feature is a card that appears while the app is closed and the phone is locked, so the server needs the device's rough area to start the card when a plane approaches. The app uses low-accuracy location, reports only after the device moves about 500 m, and rounds the position to about 100 m before sending it. With "While Using" only, cards still work while the app is open.
+Why location "Always": the core feature is a card that appears while the app is closed and the phone is locked, so the server needs the device's rough area to start the card when a plane approaches. The app uses about 100 m location accuracy in the background, reports after the device moves about 200 m, and rounds the position to about 100 m before sending it. With "While Using" only, cards still work while the app is open.
 
 Live Activities are started by push only for real nearby flights, at most 10 per hour, and can be turned off in Settings ("Show on Lock Screen"). The app sends no marketing messages and does not use regular notifications.
 

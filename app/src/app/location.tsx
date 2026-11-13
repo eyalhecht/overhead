@@ -17,8 +17,8 @@ const PROMISES: { icon: IconName; title: string; text: string }[] = [
   },
   {
     icon: 'battery',
-    title: 'Almost no battery',
-    text: 'The phone only checks in after you move about 500 m. No GPS running in the background.',
+    title: 'Light on battery',
+    text: 'The phone checks in after you move about 200 m, so cards follow you without constant GPS.',
   },
   {
     icon: 'lock',
