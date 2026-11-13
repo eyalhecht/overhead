@@ -4,7 +4,7 @@ import * as TaskManager from 'expo-task-manager';
 import { checkIn } from './checkIn';
 
 const BACKGROUND_TASK = 'overhead-background-location';
-const BACKGROUND_DISTANCE_M = 500;
+const BACKGROUND_DISTANCE_M = 200;
 
 interface BackgroundLocationData {
   locations: Location.LocationObject[];
@@ -37,9 +37,8 @@ async function startBackgroundLocation(): Promise<void> {
   if (!granted || (await Location.hasStartedLocationUpdatesAsync(BACKGROUND_TASK))) return;
 
   await Location.startLocationUpdatesAsync(BACKGROUND_TASK, {
-    accuracy: Location.Accuracy.Low,
+    accuracy: Location.Accuracy.Balanced,
     distanceInterval: BACKGROUND_DISTANCE_M,
-    deferredUpdatesDistance: BACKGROUND_DISTANCE_M,
     pausesUpdatesAutomatically: false,
     showsBackgroundLocationIndicator: false,
   });
