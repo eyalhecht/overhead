@@ -65,12 +65,12 @@ describe('passStage', () => {
   });
 
   it('ignores a plane that will pass by, but not close enough', () => {
-    const plane = aircraft({ distanceNm: 2, bearingDeg: 0, trackDeg: 90, groundSpeedKt: 240 });
+    const plane = aircraft({ distanceNm: 2.5, bearingDeg: 0, trackDeg: 90, groundSpeedKt: 240 });
     expect(passStage(plane)).toBeNull();
   });
 
   it('ignores a plane flying away from you', () => {
-    expect(passStage(aircraft({ distanceNm: 2, bearingDeg: 90, trackDeg: 90 }))).toBeNull();
+    expect(passStage(aircraft({ distanceNm: 2.5, bearingDeg: 90, trackDeg: 90 }))).toBeNull();
   });
 
   it('ignores a plane above 10,000 ft', () => {

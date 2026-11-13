@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { distanceAndBearing } from '../src/flights/geometry.js';
 import { parseReadsbResponse } from '../src/flights/positions.js';
 
 describe('parseReadsbResponse', () => {
@@ -49,26 +50,48 @@ describe('parseReadsbResponse', () => {
     expect(aircraft.map((plane) => plane.flight)).toEqual(['UAL360', 'ELY2']);
   });
 
-  it('drops positions too old to place the plane, and keeps planes without an age', () => {
+  it('moves a late position forward along the track, and drops one too old to trust', () => {
     const aircraft = parseReadsbResponse({
       ac: [
-        { hex: 'b1', flight: 'DAL867', alt_baro: 1200, gs: 136, lat: 33.95, lon: -118.4, seen_pos: 43.5 },
         {
-          hex: 'b2',
+          hex: 'c1',
+          flight: 'ICL850',
+          alt_baro: 150,
+          gs: 120,
+          track: 90,
+          lat: 32.0,
+          lon: 34.8,
+          seen_pos: 30,
+        },
+        {
+          hex: 'c2',
           flight: 'AAL2100',
           alt_baro: 1200,
           gs: 140,
-          lat: 33.95,
-          lon: -118.4,
+          track: 0,
+          lat: 32.0,
+          lon: 34.8,
           seen: 30,
-          seen_pos: 2,
+          seen_pos: 0,
         },
-        { hex: 'b3', flight: 'SKW5820', alt_baro: 900, gs: 140, lat: 33.95, lon: -118.4, seen: 20 },
-        { hex: 'b4', flight: 'QXE2278', alt_baro: 800, gs: 130, lat: 33.95, lon: -118.4 },
+        {
+          hex: 'c3',
+          flight: 'DAL867',
+          alt_baro: 1200,
+          gs: 136,
+          track: 0,
+          lat: 32.0,
+          lon: 34.8,
+          seen_pos: 75,
+        },
       ],
     });
 
-    expect(aircraft.map((plane) => plane.flight)).toEqual(['AAL2100', 'QXE2278']);
+    expect(aircraft.map((plane) => plane.flight)).toEqual(['ICL850', 'AAL2100']);
+    const [late, fresh] = aircraft;
+    expect(late!.lat).toBeCloseTo(32.0, 6);
+    expect(distanceAndBearing({ lat: 32.0, lon: 34.8 }, late!).distanceNm).toBeCloseTo(1, 2);
+    expect(fresh).toMatchObject({ lat: 32.0, lon: 34.8 });
   });
 
   it('treats a missing aircraft list as an empty sky', () => {
