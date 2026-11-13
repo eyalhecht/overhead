@@ -1,6 +1,6 @@
 import type { GeoPoint, PassStage } from '@overhead/shared';
 
-const OVERHEAD_RADIUS_NM = 1.5;
+const OVERHEAD_RADIUS_NM = 2;
 const OVERHEAD_MAX_ALTITUDE_FT = 10_000;
 const APPROACH_LEAD_SECONDS = 45;
 const INBOUND_LEAD_SECONDS = 120;

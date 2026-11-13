@@ -33,7 +33,8 @@ const TILE_MARGIN_NM = 15;
 const NM_PER_DEGREE = 60;
 const KM_PER_NM = 1.852;
 const FEED_TIMEOUT_MS = 4000;
-const MAX_POSITION_AGE_S = 15;
+const MAX_POSITION_AGE_S = 60;
+const SECONDS_PER_HOUR = 3600;
 
 export function adsbLol(): Feed {
   return {
@@ -140,18 +141,27 @@ const ReadsbAircraftSchema = z.object({
 
 const ReadsbResponseSchema = z.object({ ac: z.array(z.unknown()).default([]) });
 
+// Where a plane is now, given an older position: receivers near the ground can lag by most of a minute.
+function movedAlongTrack({ lat, lon }: GeoPoint, trackDeg: number, distanceNm: number): GeoPoint {
+  const radians = (trackDeg * Math.PI) / 180;
+  const latitude = lat + (distanceNm * Math.cos(radians)) / NM_PER_DEGREE;
+  const longitude =
+    lon + (distanceNm * Math.sin(radians)) / (NM_PER_DEGREE * Math.cos((lat * Math.PI) / 180));
+  return { lat: latitude, lon: longitude };
+}
+
 export function parseReadsbResponse(body: unknown): LocatedAircraft[] {
   return ReadsbResponseSchema.parse(body).ac.flatMap((entry) => {
     const parsed = ReadsbAircraftSchema.safeParse(entry);
     if (!parsed.success) return [];
     const { hex, flight, t, alt_baro, baro_rate, gs, track, lat, lon, seen, seen_pos } = parsed.data;
+    const ageS = seen_pos ?? seen ?? 0;
     // Some feeds report a plane on the ground as altitude 0 with its last flying speed.
-    if (alt_baro === 0 || (seen_pos ?? seen ?? 0) > MAX_POSITION_AGE_S) return [];
+    if (alt_baro === 0 || ageS > MAX_POSITION_AGE_S) return [];
     return [
       {
         id: hex,
-        lat,
-        lon,
+        ...movedAlongTrack({ lat, lon }, track, (gs * ageS) / SECONDS_PER_HOUR),
         flight,
         typeCode: t,
         altitudeFt: alt_baro,
