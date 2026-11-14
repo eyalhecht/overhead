@@ -171,7 +171,7 @@ describe('watcher', () => {
       'update:card-1',
       'update:card-1',
     ]);
-    expect(user.activity.pausedUntil).toBeUndefined();
+    expect(user.activity.waitingForCheckIn).toBeUndefined();
     expect(user.activity.recentStarts).toHaveLength(2);
   });
 

@@ -92,7 +92,7 @@ export function createWatcher({
     });
     user.activity = state;
     if (action.type === 'back-off')
-      console.warn(`${userLabel(user)} card never confirmed, pausing new cards`);
+      console.warn(`${userLabel(user)} card never confirmed, holding new cards until the phone checks in`);
     await send(user, pushesFor(action, state, user.startToken));
     users.save(user);
   }
