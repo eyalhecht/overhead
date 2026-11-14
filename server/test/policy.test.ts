@@ -289,12 +289,14 @@ describe('nextStep', () => {
     expect(startWith(plane('CLS1'))).toBe('start');
   });
 
-  it('backs off when the phone never confirms the card, and pauses new cards', () => {
+  it('backs off when the phone never confirms the card, and starts no more until it checks in', () => {
     const sim = new Simulation();
     expect(sim.step([plane('BAW1')])).toBe('start');
     expect(sim.step([plane('BAW1')], ACTIVITY_RULES.tokenWaitMs + SECOND)).toBe('back-off');
-    expect(sim.step([plane('BAW1')], MINUTE)).toBe('none');
-    expect(sim.step([plane('BAW2')], ACTIVITY_RULES.backoffMs)).toBe('start');
+    expect(sim.step([plane('BAW2')], 3 * 60 * MINUTE)).toBe('none');
+
+    sim.state = receiveCardTokens(sim.state, []).state;
+    expect(sim.step([plane('BAW2')])).toBe('start');
   });
 
   it('never starts a card when Live Activities are switched off', () => {

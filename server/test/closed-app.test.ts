@@ -80,7 +80,7 @@ describe('with the app closed', () => {
     expect(sentAs()).toEqual(['start:start-token:SWR252B']);
   });
 
-  it('pauses new cards when a force-quit app never reports its card, then starts them again', async () => {
+  it('holds new cards when a force-quit app never reports its card, until the app checks in again', async () => {
     await backgroundCheckIn(HOME);
     sky.planes = [nearbyPlane('CHZ674', { stage: 'approaching' })];
     await tickAfter(5000);
@@ -90,7 +90,11 @@ describe('with the app closed', () => {
     await tickAfter(5000);
     expect(sentAs()).toEqual(['start:start-token:CHZ674']);
 
-    await tickAfter(ACTIVITY_RULES.backoffMs);
+    await tickAfter(3 * 60 * 60_000);
+    expect(sentAs()).toEqual(['start:start-token:CHZ674']);
+
+    await backgroundCheckIn(HOME);
+    await tickAfter(5000);
     expect(sentAs()).toEqual(['start:start-token:CHZ674', 'start:start-token:WMT5012']);
   });
 

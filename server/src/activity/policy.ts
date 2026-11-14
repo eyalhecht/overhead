@@ -15,7 +15,6 @@ export const ACTIVITY_RULES = {
   maxStartsPerHour: 10,
   startsKeptForClosePlanes: 3,
   tokenWaitMs: 60_000,
-  backoffMs: 15 * 60_000,
   rememberedEndedCards: 20,
 } as const;
 
@@ -37,7 +36,7 @@ export interface ActivityState {
   goneSince?: number;
   recentStarts: number[];
   recentPlanes: number[];
-  pausedUntil?: number;
+  waitingForCheckIn?: boolean;
   cardTokens: string[];
   endedTokens: string[];
 }
@@ -78,10 +77,11 @@ export const initialActivityState = (): ActivityState => ({
 export function nextStep(state: ActivityState, { planes, now, canStart }: StepInput): StepResult {
   const { showing } = state;
 
+  // A card the phone never confirmed can't be updated or ended, so more would pile up on the Lock Screen.
   if (isStartDropped(showing, state.cardTokens.length > 0, now)) {
     return {
       action: { type: 'back-off' },
-      state: { ...state, showing: undefined, pausedUntil: now + ACTIVITY_RULES.backoffMs },
+      state: { ...state, showing: undefined, waitingForCheckIn: true },
     };
   }
 
@@ -122,10 +122,12 @@ export function pushesFor(action: Action, state: ActivityState, startToken?: str
   }
 }
 
+// Every check-in reports the card tokens, and proves the app is running again.
 export function receiveCardTokens(
-  state: ActivityState,
+  checkedIn: ActivityState,
   tokens: string[],
 ): { state: ActivityState; pushes: Push[] } {
+  const state = { ...checkedIn, waitingForCheckIn: undefined };
   const unseen = tokens.filter(
     (token) => !state.cardTokens.includes(token) && !state.endedTokens.includes(token),
   );
@@ -231,11 +233,10 @@ function isStartDropped(showing: ShowingCard | undefined, hasCardToken: boolean,
 
 // Planes that are only heard leave a few starts each hour for planes passing close.
 function mayStart(state: ActivityState, now: number, plane: NearbyPlane): boolean {
-  const paused = state.pausedUntil !== undefined && now < state.pausedUntil;
   const limit =
     ACTIVITY_RULES.maxStartsPerHour -
     (plane.heardDb === undefined ? 0 : ACTIVITY_RULES.startsKeptForClosePlanes);
-  return !paused && startsWithinHour(state.recentStarts, now).length < limit;
+  return !state.waitingForCheckIn && startsWithinHour(state.recentStarts, now).length < limit;
 }
 
 // The busier the sky has been, the longer a Passed card waits for the next plane, so a stream of

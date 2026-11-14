@@ -317,7 +317,7 @@ describe('real-world situations', () => {
       expect(flights.every((flight) => shownFlights().has(flight))).toBe(true);
       expect(world.pushes('start').length).toBeLessThanOrEqual(flights.length);
       expect(world.pushes('end')).toHaveLength(world.pushes('start').length);
-      expect(user.activity.pausedUntil).toBeUndefined();
+      expect(user.activity.waitingForCheckIn).toBeUndefined();
       expect(user.activity.cardTokens).toEqual([]);
     });
 
@@ -336,7 +336,7 @@ describe('real-world situations', () => {
       await world.run(15 * MINUTE_MS, quietSuburb);
 
       expect(shownFlights()).toContain('ELY001');
-      expect(user.activity.pausedUntil).toBeUndefined();
+      expect(user.activity.waitingForCheckIn).toBeUndefined();
     });
   });
 });
