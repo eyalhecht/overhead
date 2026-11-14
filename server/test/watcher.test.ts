@@ -62,10 +62,10 @@ describe('watcher', () => {
     expect(watched.sort()).toEqual(['demo spot', 'own location']);
   });
 
-  it('shows planes without a known route', async () => {
-    sky.planes = [nearbyPlane('4XCDO', { route: null })];
+  it('shows airline flights without a known route, but not private planes', async () => {
+    sky.planes = [nearbyPlane('4XCDO', { route: null }), nearbyPlane('WMT4639', { route: null })];
     await watcher.tick();
-    expect(push.sent).toMatchObject([{ event: 'start', props: { flight: '4XCDO', route: null } }]);
+    expect(push.sent).toMatchObject([{ event: 'start', props: { flight: 'WMT4639', route: null } }]);
   });
 
   it('ends a card at once when its token arrives after the plane has gone', async () => {

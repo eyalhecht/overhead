@@ -1,6 +1,6 @@
+import { AIRLINE_CALLSIGN } from '@overhead/shared/rules';
 import airlineNames from './airlines.json' with { type: 'json' };
 
-const AIRLINE_CALLSIGN = /^([A-Z]{3})\d/;
 const names: Record<string, string> = airlineNames;
 
 export function airlineName(callsign: string): string | undefined {

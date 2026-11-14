@@ -145,7 +145,7 @@ describe('real-world situations', () => {
     world.join();
     const startedAt = world.now;
     const helicopter = (elapsedMs: number) =>
-      elapsedMs < 40 * MINUTE_MS ? [nearbyPlane('POLICE1', { distanceNm: 0.8 })] : [];
+      elapsedMs < 40 * MINUTE_MS ? [nearbyPlane('POL1', { distanceNm: 0.8 })] : [];
     const airliner = passing('ELY001', 15 * MINUTE_MS, 90, { distanceNm: 0.3 });
 
     await world.run(45 * MINUTE_MS, together(airliner, helicopter));
@@ -153,9 +153,9 @@ describe('real-world situations', () => {
     const airlinerGoneAt = startedAt + 15 * MINUTE_MS + UNTIL_OVERHEAD_MS + 90_000;
     const helicopterShownAgain = world
       .pushes()
-      .filter(({ at, event, props }) => at > airlinerGoneAt && event !== 'end' && props.flight === 'POLICE1');
+      .filter(({ at, event, props }) => at > airlinerGoneAt && event !== 'end' && props.flight === 'POL1');
     expect(helicopterShownAgain).toEqual([]);
-    expect(world.pushes('start').map(({ props }) => props.flight)).toEqual(['POLICE1', 'ELY001']);
+    expect(world.pushes('start').map(({ props }) => props.flight)).toEqual(['POL1', 'ELY001']);
   });
 
   it('ends the card soon after quiet hours begin', async () => {
