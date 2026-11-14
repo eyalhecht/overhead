@@ -219,8 +219,8 @@ describe('nextStep', () => {
     expect(sim.step([heard])).toBe('start');
     sim.confirmCard();
 
-    expect(sim.step([nearbyPlane('CLOSE1', { distanceNm: 0.4 }), heard])).toBe('update');
-    expect(sim.lastAction).toMatchObject({ props: { flight: 'CLOSE1' } });
+    expect(sim.step([nearbyPlane('CLS1', { distanceNm: 0.4 }), heard])).toBe('update');
+    expect(sim.lastAction).toMatchObject({ props: { flight: 'CLS1' } });
     expect(sim.state.recentStarts).toHaveLength(1);
   });
 
@@ -251,10 +251,15 @@ describe('nextStep', () => {
     });
   });
 
-  it('shows a plane whose route is unknown', () => {
+  it('shows an airline flight whose route is unknown', () => {
     const sim = new Simulation();
-    expect(sim.step([nearbyPlane('4XCDO', { route: null })])).toBe('start');
-    expect(sim.lastAction).toMatchObject({ props: { flight: '4XCDO', route: null } });
+    expect(sim.step([nearbyPlane('WMT4639', { route: null })])).toBe('start');
+    expect(sim.lastAction).toMatchObject({ props: { flight: 'WMT4639', route: null } });
+  });
+
+  it('gives no card to a private plane flying under its tail number', () => {
+    const sim = new Simulation();
+    expect(sim.step([nearbyPlane('4XCDO', { route: null })])).toBe('none');
   });
 
   it('opens at most 10 new cards per hour', () => {
@@ -281,7 +286,7 @@ describe('nextStep', () => {
     const heard = (flight: string) => nearbyPlane(flight, { heardDb: 52 });
     const starts = Array.from({ length: 8 }, (_, index) => startWith(heard(`HRD${index}`)));
     expect(starts).toEqual([...Array(7).fill('start'), 'none']);
-    expect(startWith(plane('CLOSE1'))).toBe('start');
+    expect(startWith(plane('CLS1'))).toBe('start');
   });
 
   it('backs off when the phone never confirms the card, and pauses new cards', () => {
@@ -300,23 +305,23 @@ describe('nextStep', () => {
 
   it('drops an aircraft that keeps circling over you, and does not show it again', () => {
     const sim = new Simulation();
-    sim.step([plane('HELI1')]);
+    sim.step([plane('HLI1')]);
     sim.confirmCard();
-    for (let minute = 0; minute < 10; minute += 1) sim.step([plane('HELI1')], MINUTE);
-    expect(sim.step([plane('HELI1')], SECOND)).toBe('end');
-    expect(sim.step([plane('HELI1')])).toBe('none');
+    for (let minute = 0; minute < 10; minute += 1) sim.step([plane('HLI1')], MINUTE);
+    expect(sim.step([plane('HLI1')], SECOND)).toBe('end');
+    expect(sim.step([plane('HLI1')])).toBe('none');
     expect(sim.step([plane('BAW2')])).toBe('start');
   });
 
   it('keeps timing a circling aircraft through short gaps in the feed', () => {
     const sim = new Simulation();
-    sim.step([plane('HELI1')]);
+    sim.step([plane('HLI1')]);
     sim.confirmCard();
     for (let minute = 0; minute < 10; minute += 1) {
-      sim.step([plane('HELI1')], 30 * SECOND);
+      sim.step([plane('HLI1')], 30 * SECOND);
       sim.step([], 30 * SECOND);
     }
-    expect(sim.step([plane('HELI1')], SECOND)).toBe('end');
+    expect(sim.step([plane('HLI1')], SECOND)).toBe('end');
   });
 
   it('treats an aircraft as new once it has been gone for a while', () => {
